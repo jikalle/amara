@@ -1,0 +1,11 @@
+{
+  "name": "@anara/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build":    "forge build",
+    "test":     "forge test -vvv",
+    "deploy:base": "forge script script/Deploy.s.sol --rpc-url base --broadcast --verify",
+    "coverage": "forge coverage"
+  }
+}

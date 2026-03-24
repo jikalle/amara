@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --earth:     #1A1208;
+  --soil:      #221A0E;
+  --clay:      #2E2010;
+  --clay2:     #3A2A14;
+  --border:    #4A3520;
+  --gold:      #D4920A;
+  --gold2:     #F0B429;
+  --kola:      #C0392B;
+  --turmeric:  #E8A020;
+  --green:     #2ECC71;
+  --teal:      #48C9B0;
+  --text:      #F5E6C8;
+  --text2:     #C8AA7A;
+  --muted:     #7A5E3A;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--earth);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: var(--clay); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Selection */
+::selection {
+  background: rgba(212, 146, 10, 0.25);
+  color: var(--text);
+}
+
+/* Kente utility */
+.kente-border-t {
+  border-top: 4px solid;
+  border-image: repeating-linear-gradient(
+    90deg,
+    #D4920A 0, #D4920A 10px,
+    #C0392B 10px, #C0392B 20px,
+    #E8A020 20px, #E8A020 30px,
+    #1A1208 30px, #1A1208 36px
+  ) 1;
+}
+
+/* Anara logo SVG mark — inline for critical path */
+.anara-mark {
+  width: 28px;
+  height: 28px;
+}

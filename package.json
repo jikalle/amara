@@ -1,0 +1,30 @@
+{
+  "name": "anara",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Anara — The world's first autonomous multichain wallet",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev:mobile": "pnpm --filter @anara/mobile start",
+    "dev:web": "pnpm --filter @anara/web dev",
+    "dev:extension": "pnpm --filter @anara/extension dev",
+    "dev:api": "pnpm --filter @anara/api dev",
+    "dev:agent": "pnpm --filter @anara/agent dev",
+    "build:web": "pnpm --filter @anara/web build",
+    "build:extension": "pnpm --filter @anara/extension build",
+    "build:contracts": "pnpm --filter @anara/contracts build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.4.0",
+    "turbo": "^2.0.0"
+  }
+}

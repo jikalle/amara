@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Anara",
+    "slug": "anara-wallet",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A1208"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "io.anara.wallet",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Anara uses Face ID to secure your wallet.",
+        "NSMicrophoneUsageDescription": "Anara uses the microphone for voice commands."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1A1208"
+      },
+      "package": "io.anara.wallet",
+      "permissions": ["USE_BIOMETRIC", "USE_FINGERPRINT", "RECORD_AUDIO"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      ["expo-local-authentication", { "faceIDPermission": "Secure your Anara wallet with Face ID" }],
+      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#D4920A" }]
+    ],
+    "scheme": "anara"
+  }
+}
