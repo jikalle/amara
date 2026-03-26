@@ -25,13 +25,30 @@
         "backgroundColor": "#1A1208"
       },
       "package": "io.anara.wallet",
-      "permissions": ["USE_BIOMETRIC", "USE_FINGERPRINT", "RECORD_AUDIO"]
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      ["expo-local-authentication", { "faceIDPermission": "Secure your Anara wallet with Face ID" }],
-      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#D4920A" }]
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Secure your Anara wallet with Face ID"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#D4920A"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "scheme": "anara"
   }

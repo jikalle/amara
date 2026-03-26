@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
-import { useAgent } from '../../hooks/useAgent'
+import { useAgent } from '../hooks/useAgent'
 
 const C = {
   earth: '#1A1208', soil: '#221A0E', clay: '#2E2010', border: '#4A3520',

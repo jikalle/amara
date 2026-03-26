@@ -1,3 +1,4 @@
+import '../polyfills/crypto'
 import { useEffect } from 'react'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
@@ -6,25 +7,46 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PrivyProvider } from '@privy-io/expo'
 import * as Notifications from 'expo-notifications'
+import Constants from 'expo-constants'
+import { View, Text } from 'react-native'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000 } },
 })
 
-// Configure notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge:  true,
-  }),
-})
+const isExpoGo = Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient'
 
 export default function RootLayout() {
   useEffect(() => {
-    // Request notification permissions on mount
+    if (isExpoGo) return
+    // Configure notification handler + request permissions in dev builds
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge:  true,
+      }),
+    })
     Notifications.requestPermissionsAsync()
   }, [])
+
+  if (isExpoGo) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <View style={{ flex: 1, backgroundColor: '#1A1208', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <Text style={{ color: '#F0B429', fontSize: 18, fontWeight: '800', marginBottom: 12, textAlign: 'center' }}>
+              Dev Build Required
+            </Text>
+            <Text style={{ color: '#C8AA7A', fontSize: 13, lineHeight: 20, textAlign: 'center' }}>
+              This app uses native modules (Privy + Notifications) that are not available in Expo Go.
+              Build a development client to run the mobile app.
+            </Text>
+          </View>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    )
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
