@@ -4,6 +4,13 @@ export interface ResolvedWalletIdentity {
 }
 
 export function resolveWalletIdentity(user: any): ResolvedWalletIdentity {
+  const directWalletAddress =
+    typeof user?.wallet?.address === 'string'
+      ? user.wallet.address
+      : typeof user?.smartWallet?.address === 'string'
+        ? user.smartWallet.address
+        : null
+
   const linkedAccounts = user?.linkedAccounts ?? user?.linked_accounts ?? []
   const walletAccount = linkedAccounts.find((account: any) =>
     account?.type === 'wallet' ||
@@ -11,7 +18,7 @@ export function resolveWalletIdentity(user: any): ResolvedWalletIdentity {
     account?.type === 'embedded_wallet'
   )
 
-  const address = typeof walletAccount?.address === 'string' ? walletAccount.address : null
+  const address = directWalletAddress ?? (typeof walletAccount?.address === 'string' ? walletAccount.address : null)
 
   return {
     address,

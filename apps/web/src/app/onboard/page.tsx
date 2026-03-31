@@ -28,7 +28,6 @@ export default function OnboardPage() {
     setLoading(true)
     try {
       await login({ loginMethods: [method] })
-      router.replace('/dashboard')
     } catch (err) {
       console.error(err)
     } finally {

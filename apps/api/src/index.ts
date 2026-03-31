@@ -4,6 +4,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { agentRouter }    from './routes/agent'
+import { authRouter }     from './routes/auth'
 import { walletRouter }   from './routes/wallet'
 import { strategyRouter } from './routes/strategy'
 import { txRouter }       from './routes/transactions'
@@ -43,6 +44,7 @@ app.get('/health', (_req, res) => {
 })
 
 // ── API routes ──
+app.use('/api/auth',     authRouter)
 app.use('/api/agent',    agentRouter)
 app.use('/api/wallet',   walletRouter)
 app.use('/api/strategy', strategyRouter)

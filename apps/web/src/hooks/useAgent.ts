@@ -3,6 +3,7 @@
 import { useCallback } from 'react'
 import { useAgentStore, useWalletStore } from '../store'
 import type { AgentActionCard, AgentMessage, TokenBalance, Transaction } from '@anara/types'
+import { useAuth } from '../lib/auth'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
 
@@ -11,6 +12,7 @@ function generateId() {
 }
 
 export function useAgent() {
+  const { identityToken } = useAuth()
   const { sessionId, messages, isThinking, addMessage, updateMessage, setThinking, updateState, setBrief } = useAgentStore()
   const { address, chainId, setPortfolio, setTransactions, setLoading, setError } = useWalletStore()
 
@@ -30,7 +32,7 @@ export function useAgent() {
     try {
       const res = await fetch(`${API_URL}/api/agent/chat`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildHeaders(identityToken),
         body: JSON.stringify({
           sessionId,
           message:       content,
@@ -64,14 +66,14 @@ export function useAgent() {
     } finally {
       setThinking(false)
     }
-  }, [sessionId, address, chainId, isThinking, addMessage, setThinking, setBrief])
+  }, [sessionId, address, chainId, identityToken, isThinking, addMessage, setThinking, setBrief])
 
   const fetchBrief = useCallback(async () => {
     if (!address) return null
     try {
       const res = await fetch(`${API_URL}/api/agent/brief`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildHeaders(identityToken),
         body: JSON.stringify({ walletAddress: address }),
       })
       const data = await res.json()
@@ -81,7 +83,7 @@ export function useAgent() {
       setBrief(null)
       return null
     }
-  }, [address, setBrief])
+  }, [address, identityToken, setBrief])
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -101,8 +103,12 @@ export function useAgent() {
     setError(null)
     try {
       const [portfolioRes, txRes] = await Promise.all([
-        fetch(`${API_URL}/api/wallet/${address}/portfolio`),
-        fetch(`${API_URL}/api/wallet/${address}/transactions?chainId=${chainId ?? 8453}`),
+        fetch(`${API_URL}/api/wallet/${address}/portfolio`, {
+          headers: buildHeaders(identityToken, false),
+        }),
+        fetch(`${API_URL}/api/wallet/${address}/transactions?chainId=${chainId ?? 8453}`, {
+          headers: buildHeaders(identityToken, false),
+        }),
       ])
 
       if (portfolioRes.ok) {
@@ -125,7 +131,7 @@ export function useAgent() {
     } finally {
       setLoading(false)
     }
-  }, [address, chainId, setError, setLoading, setPortfolio, setTransactions])
+  }, [address, chainId, identityToken, setError, setLoading, setPortfolio, setTransactions])
 
   const executeAction = useCallback(async (messageId: string, card: AgentActionCard) => {
     if (!address) {
@@ -146,7 +152,7 @@ export function useAgent() {
     try {
       const simulationRes = await fetch(`${API_URL}/api/tx/simulate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildHeaders(identityToken),
         body: JSON.stringify({
           walletAddress: address,
           chainId: chainId ?? 8453,
@@ -159,7 +165,7 @@ export function useAgent() {
 
       const res = await fetch(`${API_URL}/api/tx/execute`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildHeaders(identityToken),
         body: JSON.stringify({
           walletAddress: address,
           chainId: chainId ?? 8453,
@@ -197,7 +203,7 @@ export function useAgent() {
       })
       throw err
     }
-  }, [address, chainId, refreshWallet, updateMessage, addMessage])
+  }, [address, chainId, identityToken, refreshWallet, updateMessage, addMessage])
 
   const cancelAction = useCallback((messageId: string) => {
     updateMessage(messageId, (msg) => ({
@@ -216,6 +222,13 @@ export function useAgent() {
     executeAction,
     cancelAction,
   }
+}
+
+function buildHeaders(identityToken: string | null, includeJson = true) {
+  const headers: Record<string, string> = {}
+  if (includeJson) headers['Content-Type'] = 'application/json'
+  if (identityToken) headers.Authorization = `Bearer ${identityToken}`
+  return headers
 }
 
 function buildExecutionSuccessMessage(txHash?: string, route?: string, gasEstimateUsd?: string) {

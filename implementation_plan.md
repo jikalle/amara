@@ -1,5 +1,22 @@
  Concrete Implementation Plan (MVP end‑to‑end)
 
+  Status Update — 2026-03-31
+
+  Completed phase: Web auth foundation
+
+  Done
+
+  1. Real Privy-backed web auth replaced the demo local-storage flow.
+  2. Authenticated user bootstrap was added via /api/auth/sync.
+  3. Web wallet and agent requests now include the Privy identity token.
+  4. Wallet identity resolution now supports real Privy wallet fields.
+  5. Agent portfolio and price queries now use live Alchemy/CoinGecko reads.
+
+  Next phase
+
+  1. Replace mock send/swap/bridge previews with real quote-backed action cards.
+  2. Replace synthetic transaction execution with real simulate/execute plumbing.
+
   Assumptions
 
   1. Target MVP = usable web + mobile wallet with agent chat, real portfolio data, swap/bridge execution with

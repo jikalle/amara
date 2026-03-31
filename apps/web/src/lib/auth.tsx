@@ -1,66 +1,134 @@
 'use client'
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react'
+import {
+  PrivyProvider,
+  useIdentityToken,
+  useLogout,
+  usePrivy,
+  type User,
+} from '@privy-io/react-auth'
+import { base, mainnet } from 'viem/chains'
+import { resolveWalletIdentity } from './wallet'
 
 type LoginMethod = 'email' | 'sms' | 'wallet' | 'google'
-
-interface DemoUser {
-  email?: { address?: string }
-  linkedAccounts: Array<{ type: string; address?: string }>
-}
 
 interface AuthContextValue {
   ready: boolean
   authenticated: boolean
-  user: DemoUser | null
+  user: User | null
+  identityToken: string | null
   login: (options?: { loginMethods?: LoginMethod[] }) => Promise<void>
   logout: () => Promise<void>
 }
 
-const AUTH_STORAGE_KEY = 'anara-demo-auth'
+const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? ''
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false)
-  const [user, setUser] = useState<DemoUser | null>(null)
+  if (!PRIVY_APP_ID) {
+    throw new Error('Missing NEXT_PUBLIC_PRIVY_APP_ID. Configure Privy before running the web app.')
+  }
+
+  return (
+    <PrivyProvider
+      appId={PRIVY_APP_ID}
+      config={{
+        loginMethods: ['email', 'sms', 'google', 'wallet'],
+        appearance: {
+          theme: 'dark',
+          accentColor: '#D4920A',
+          logo: '/anara-logo.svg',
+        },
+        embeddedWallets: {
+          createOnLogin: 'users-without-wallets',
+          noPromptOnSignature: false,
+        },
+        defaultChain: base,
+        supportedChains: [base, mainnet],
+        externalWallets: {
+          walletConnect: {
+            enabled: true,
+          },
+        },
+      }}
+    >
+      <AuthSessionProvider>{children}</AuthSessionProvider>
+    </PrivyProvider>
+  )
+}
+
+function AuthSessionProvider({ children }: { children: React.ReactNode }) {
+  const { ready, authenticated, user, login: openLogin } = usePrivy()
+  const { identityToken } = useIdentityToken()
+  const { logout } = useLogout()
+  const lastSyncedRef = useRef<string | null>(null)
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(AUTH_STORAGE_KEY)
-      if (raw) {
-        setUser(JSON.parse(raw) as DemoUser)
+    if (!ready || !authenticated || !identityToken || !user?.id) return
+
+    const { address } = resolveWalletIdentity(user)
+    const syncKey = `${user.id}:${address ?? 'no-wallet'}`
+    if (lastSyncedRef.current === syncKey) return
+
+    let cancelled = false
+
+    async function syncUser() {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/sync`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${identityToken}`,
+          },
+          body: JSON.stringify({
+            walletAddress: address ?? undefined,
+          }),
+        })
+
+        if (!res.ok) {
+          throw new Error(`Auth sync failed with status ${res.status}`)
+        }
+
+        if (!cancelled) {
+          lastSyncedRef.current = syncKey
+        }
+      } catch (error) {
+        if (!cancelled) {
+          lastSyncedRef.current = null
+          console.error('[auth sync]', error)
+        }
       }
-    } catch {
-      window.localStorage.removeItem(AUTH_STORAGE_KEY)
-    } finally {
-      setReady(true)
     }
-  }, [])
+
+    void syncUser()
+
+    return () => {
+      cancelled = true
+    }
+  }, [authenticated, identityToken, ready, user])
 
   const value = useMemo<AuthContextValue>(() => ({
     ready,
-    authenticated: Boolean(user),
+    authenticated,
     user,
+    identityToken,
     login: async (options) => {
       const primaryMethod = options?.loginMethods?.[0] ?? 'email'
-      const nextUser: DemoUser = {
-        email: primaryMethod === 'wallet' ? undefined : { address: 'demo@anara.io' },
-        linkedAccounts: [
-          {
-            type: 'wallet',
-            address: '0x1111111111111111111111111111111111111111',
-          },
-        ],
-      }
-      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser))
-      setUser(nextUser)
+      openLogin({
+        loginMethods: [primaryMethod],
+      })
     },
-    logout: async () => {
-      window.localStorage.removeItem(AUTH_STORAGE_KEY)
-      setUser(null)
-    },
-  }), [ready, user])
+    logout,
+  }), [authenticated, identityToken, logout, openLogin, ready, user])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
