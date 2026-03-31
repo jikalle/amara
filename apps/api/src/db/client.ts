@@ -48,6 +48,23 @@ type TransactionInsert = {
   bridgeProtocol?: string
 }
 
+type TransactionRow = {
+  tx_hash: string
+  chain_id: number
+  tx_type: string
+  status: string
+  from_address: string
+  to_address?: string | null
+  value_formatted?: string | null
+  value_usd?: number | null
+  token_in?: Record<string, unknown> | null
+  token_out?: Record<string, unknown> | null
+  from_chain_id?: number | null
+  to_chain_id?: number | null
+  bridge_protocol?: string | null
+  updated_at?: string | null
+}
+
 const connectionString = process.env.DATABASE_URL ?? process.env.SUPABASE_DB_URL
 const pool = connectionString ? new Pool({ connectionString }) : null
 
@@ -299,6 +316,92 @@ export async function saveTransaction(userId: string, tx: TransactionInsert) {
   const next = current.filter((entry) => !(entry.txHash === tx.txHash && entry.chainId === tx.chainId))
   next.unshift(tx)
   memory.transactions.set(userId, next.slice(0, 100))
+}
+
+export async function getStoredTransactions(userId: string, chainId?: number, limit = 20) {
+  if (pool) {
+    const values: unknown[] = [userId]
+    let sql = `
+      select tx_hash, chain_id, tx_type, status, from_address, to_address, value_formatted,
+             value_usd, token_in, token_out, from_chain_id, to_chain_id, bridge_protocol, updated_at
+      from transactions
+      where user_id = $1
+    `
+    if (typeof chainId === 'number') {
+      values.push(chainId)
+      sql += ` and chain_id = $${values.length}`
+    }
+    values.push(limit)
+    sql += ` order by updated_at desc nulls last limit $${values.length}`
+
+    const result = await query<TransactionRow>(sql, values)
+    return result?.rows ?? []
+  }
+
+  return (memory.transactions.get(userId) ?? [])
+    .filter((entry) => typeof chainId !== 'number' || entry.chainId === chainId)
+    .slice(0, limit)
+    .map((entry) => ({
+      tx_hash: entry.txHash,
+      chain_id: entry.chainId,
+      tx_type: entry.txType,
+      status: entry.status,
+      from_address: entry.fromAddress,
+      to_address: entry.toAddress ?? null,
+      value_formatted: entry.valueFormatted ?? null,
+      value_usd: entry.valueUsd ?? null,
+      token_in: entry.tokenIn as Record<string, unknown> | null,
+      token_out: entry.tokenOut as Record<string, unknown> | null,
+      from_chain_id: entry.fromChainId ?? null,
+      to_chain_id: entry.toChainId ?? null,
+      bridge_protocol: entry.bridgeProtocol ?? null,
+      updated_at: new Date().toISOString(),
+    }))
+}
+
+export async function updateTransactionStatus(
+  txHash: string,
+  chainId: number,
+  status: 'pending' | 'confirmed' | 'failed'
+) {
+  if (pool) {
+    await query(
+      `
+        update transactions
+        set status = $3, updated_at = now()
+        where tx_hash = $1 and chain_id = $2
+      `,
+      [txHash, chainId, status]
+    )
+
+    await query(
+      `
+        update agent_executions
+        set status = $3
+        where tx_hash = $1 and chain_id = $2
+      `,
+      [txHash, chainId, status === 'confirmed' ? 'success' : status]
+    )
+    return
+  }
+
+  for (const [userId, entries] of memory.transactions.entries()) {
+    const next = entries.map((entry) =>
+      entry.txHash === txHash && entry.chainId === chainId
+        ? { ...entry, status }
+        : entry
+    )
+    memory.transactions.set(userId, next)
+  }
+
+  for (const [userId, entries] of memory.executions.entries()) {
+    const next = entries.map((entry) =>
+      entry.tx_hash === txHash && entry.chain_id === chainId
+        ? { ...entry, status: status === 'confirmed' ? 'success' : status }
+        : entry
+    )
+    memory.executions.set(userId, next)
+  }
 }
 
 export async function savePortfolioSnapshot(userId: string, totalUsd: number, breakdown: object) {

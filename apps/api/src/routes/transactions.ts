@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { getUserByWalletAddress, logExecution, saveTransaction } from '../db/client'
+import { erc20Abi, getAddress, isAddress, zeroAddress } from 'viem'
+import { getUserByWalletAddress, logExecution, saveTransaction, updateTransactionStatus } from '../db/client'
+import { getPublicClient } from '@anara/chain'
 
 export const txRouter = Router()
 
@@ -14,6 +16,8 @@ const ActionMetadataSchema = z.object({
   toTokenSymbol: z.string().optional(),
   fromTokenAddress: z.string().optional(),
   toTokenAddress: z.string().optional(),
+  fromTokenDecimals: z.number().int().nonnegative().optional(),
+  toTokenDecimals: z.number().int().nonnegative().optional(),
   fromAmount: z.string().optional(),
   toAmount: z.string().optional(),
   toAmountMin: z.string().optional(),
@@ -31,7 +35,7 @@ const ActionCardSchema = z.object({
     value: z.string(),
     highlight: z.boolean().optional(),
   })),
-  status: z.enum(['pending', 'executing', 'confirmed', 'failed', 'cancelled']),
+  status: z.enum(['pending', 'executing', 'submitted', 'confirmed', 'failed', 'cancelled']),
   txHash: z.string().optional(),
   metadata: ActionMetadataSchema.optional(),
 })
@@ -57,17 +61,23 @@ txRouter.post('/simulate', async (req, res) => {
     const body = SimulateSchema.parse(req.body)
     const analysis = summarizeAction(body.actionCard)
     const metadata = body.actionCard?.metadata
+    const balanceCheck = await getBalanceCheck(body.walletAddress, metadata, body.chainId)
+    const warnings = [
+      ...analysis.warnings,
+      ...(balanceCheck.warning ? [balanceCheck.warning] : []),
+    ]
 
     res.json({
       success: true,
       chainId: body.chainId,
-      willSucceed: canSimulate(body.actionCard),
+      willSucceed: canSimulate(body.actionCard) && balanceCheck.sufficient,
       gasEstimateUsd: analysis.gasEstimateUsd,
       estimatedRoute: analysis.route,
-      warnings: analysis.warnings,
+      warnings,
       executionMode: metadata?.routeId ? 'quote-backed' : 'preview-only',
       steps: metadata?.steps ?? null,
       estimatedFeeUsd: formatUsd(metadata?.estimatedFeeUsd),
+      balance: balanceCheck.summary,
     })
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -122,7 +132,7 @@ txRouter.post('/execute', async (req, res) => {
       },
       actionCard: {
         ...body.actionCard,
-        status: 'confirmed',
+        status: status === 'confirmed' ? 'confirmed' : 'submitted',
         txHash,
       },
     })
@@ -131,6 +141,36 @@ txRouter.post('/execute', async (req, res) => {
       return res.status(400).json({ error: 'Invalid execution payload', details: err.errors })
     }
     return res.status(500).json({ error: 'Execution unavailable' })
+  }
+})
+
+txRouter.get('/status/:chainId/:txHash', async (req, res) => {
+  try {
+    const chainId = Number(req.params.chainId)
+    const txHash = req.params.txHash as `0x${string}`
+    if (!Number.isFinite(chainId) || !/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+      return res.status(400).json({ error: 'Invalid transaction lookup' })
+    }
+
+    const client = getPublicClient(chainId)
+    const receipt = await client.getTransactionReceipt({ hash: txHash })
+    const status = receipt.status === 'success' ? 'confirmed' : 'failed'
+    await updateTransactionStatus(txHash, chainId, status)
+
+    return res.json({
+      hash: txHash,
+      chainId,
+      status,
+      blockNumber: Number(receipt.blockNumber),
+      explorerUrl: getExplorerUrl(chainId, txHash),
+    })
+  } catch (err) {
+    return res.json({
+      hash: req.params.txHash,
+      chainId: Number(req.params.chainId),
+      status: 'pending',
+      explorerUrl: getExplorerUrl(Number(req.params.chainId), req.params.txHash),
+    })
   }
 })
 
@@ -184,6 +224,48 @@ async function persistExecution(
         actionMetadata: actionCard.metadata ?? null,
       },
     })
+  }
+}
+
+async function getBalanceCheck(
+  walletAddress: string,
+  metadata: z.infer<typeof ActionMetadataSchema> | undefined,
+  fallbackChainId: number
+) {
+  if (!metadata?.fromAmount) {
+    return { sufficient: true, warning: null, summary: null }
+  }
+
+  const chainId = metadata.fromChainId ?? fallbackChainId
+  const client = getPublicClient(chainId)
+
+  try {
+    const isNative = !metadata.fromTokenAddress || metadata.fromTokenAddress === zeroAddress
+    const requiredRaw = BigInt(metadata.fromAmount)
+    const balanceRaw = isNative
+      ? await client.getBalance({ address: getAddress(walletAddress) })
+      : await client.readContract({
+          address: getAddress(metadata.fromTokenAddress),
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [getAddress(walletAddress)],
+        })
+
+    const sufficient = balanceRaw >= requiredRaw
+    const decimals = metadata.fromTokenDecimals ?? (isNative ? 18 : 18)
+    const symbol = metadata.fromTokenSymbol ?? 'token'
+
+    return {
+      sufficient,
+      warning: sufficient ? null : `Insufficient ${symbol} balance for this action.`,
+      summary: {
+        token: symbol,
+        available: formatTokenAmount(balanceRaw, decimals),
+        required: formatTokenAmount(requiredRaw, decimals),
+      },
+    }
+  } catch {
+    return { sufficient: true, warning: null, summary: null }
   }
 }
 
@@ -245,4 +327,11 @@ function formatUsd(value?: number) {
 
 function chainName(chainId: number) {
   return chainId === 1 ? 'Ethereum' : chainId === 8453 ? 'Base' : `Chain ${chainId}`
+}
+
+function formatTokenAmount(value: bigint, decimals: number, precision = 6) {
+  const padded = value.toString().padStart(decimals + 1, '0')
+  const whole = padded.slice(0, -decimals)
+  const fraction = padded.slice(-decimals).replace(/0+$/, '').slice(0, precision)
+  return fraction ? `${whole}.${fraction}` : whole
 }
