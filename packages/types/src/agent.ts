@@ -23,6 +23,28 @@ export interface AgentActionCard {
   rows: { label: string; value: string; highlight?: boolean }[]
   status: 'pending' | 'executing' | 'confirmed' | 'failed' | 'cancelled'
   txHash?: `0x${string}`
+  metadata?: AgentActionMetadata
+}
+
+export interface AgentActionMetadata {
+  kind: 'swap' | 'bridge' | 'send'
+  routeId?: string
+  tool?: string
+  fromChainId?: number
+  toChainId?: number
+  fromTokenSymbol?: string
+  toTokenSymbol?: string
+  fromTokenAddress?: string
+  toTokenAddress?: string
+  fromTokenDecimals?: number
+  toTokenDecimals?: number
+  fromAmount?: string
+  toAmount?: string
+  toAmountMin?: string
+  toAddress?: string
+  estimatedGasUsd?: number
+  estimatedFeeUsd?: number
+  steps?: number
 }
 
 export interface AgentState {

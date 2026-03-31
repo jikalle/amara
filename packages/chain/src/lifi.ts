@@ -1,11 +1,22 @@
-import { createConfig, EVM, getQuote, executeRoute, type Route } from '@lifi/sdk'
+import {
+  convertQuoteToRoute,
+  createConfig,
+  EVM,
+  executeRoute,
+  getQuote,
+  type LiFiStep,
+  type Route,
+  type RouteExtended,
+} from '@lifi/sdk'
 import type { WalletClient } from 'viem'
 
 // Initialize LI.FI SDK
-createConfig({
+const lifiConfig = {
   integrator: 'anara-wallet',
   providers: [EVM()],
-})
+}
+
+createConfig(lifiConfig)
 
 export interface SwapParams {
   fromChainId: number
@@ -35,14 +46,34 @@ export async function getSwapQuote(params: SwapParams) {
   return quote
 }
 
-export async function executeSwap(route: Route, walletClient: WalletClient) {
-  return await executeRoute(route, {
-    executionSettings: {
-      updateRouteHook(updatedRoute) {
-        console.log('[LI.FI] Route updated:', updatedRoute.id)
-      },
-    },
+export async function executeSwap(
+  route: Route | LiFiStep,
+  getWalletClient: (chainId: number) => Promise<WalletClient>,
+  onRouteUpdate?: (route: RouteExtended) => void
+) {
+  const normalizedRoute = isRoute(route) ? route : convertQuoteToRoute(route, {
+    adjustZeroOutputFromPreviousStep: true,
   })
+  const initialChainId = normalizedRoute.steps[0]?.action.fromChainId ?? normalizedRoute.fromChainId
+
+  createConfig({
+    ...lifiConfig,
+    providers: [
+      EVM({
+        getWalletClient: async () => await getWalletClient(initialChainId),
+        switchChain: async (chainId) => await getWalletClient(chainId),
+      }),
+    ],
+  })
+
+  return await executeRoute(normalizedRoute, {
+    switchChainHook: async (chainId) => await getWalletClient(chainId),
+    updateRouteHook: onRouteUpdate,
+  })
+}
+
+function isRoute(route: Route | LiFiStep): route is Route {
+  return Array.isArray((route as Route).steps)
 }
 
 // Token addresses for major assets on Base

@@ -4,6 +4,25 @@ import { getUserByWalletAddress, logExecution, saveTransaction } from '../db/cli
 
 export const txRouter = Router()
 
+const ActionMetadataSchema = z.object({
+  kind: z.enum(['swap', 'bridge', 'send']),
+  routeId: z.string().optional(),
+  tool: z.string().optional(),
+  fromChainId: z.number().int().positive().optional(),
+  toChainId: z.number().int().positive().optional(),
+  fromTokenSymbol: z.string().optional(),
+  toTokenSymbol: z.string().optional(),
+  fromTokenAddress: z.string().optional(),
+  toTokenAddress: z.string().optional(),
+  fromAmount: z.string().optional(),
+  toAmount: z.string().optional(),
+  toAmountMin: z.string().optional(),
+  toAddress: z.string().optional(),
+  estimatedGasUsd: z.number().nonnegative().optional(),
+  estimatedFeeUsd: z.number().nonnegative().optional(),
+  steps: z.number().int().nonnegative().optional(),
+})
+
 const ActionCardSchema = z.object({
   type: z.enum(['swap', 'send', 'bridge', 'query', 'strategy', 'settings', 'unknown']),
   title: z.string(),
@@ -14,6 +33,7 @@ const ActionCardSchema = z.object({
   })),
   status: z.enum(['pending', 'executing', 'confirmed', 'failed', 'cancelled']),
   txHash: z.string().optional(),
+  metadata: ActionMetadataSchema.optional(),
 })
 
 const SimulateSchema = z.object({
@@ -26,6 +46,9 @@ const ExecuteSchema = z.object({
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
   chainId: z.number().int().positive().default(8453),
   signature: z.string().min(1).optional(),
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/).optional(),
+  explorerUrl: z.string().url().optional(),
+  executionStatus: z.enum(['pending', 'confirmed']).optional(),
   actionCard: ActionCardSchema,
 })
 
@@ -33,14 +56,18 @@ txRouter.post('/simulate', async (req, res) => {
   try {
     const body = SimulateSchema.parse(req.body)
     const analysis = summarizeAction(body.actionCard)
+    const metadata = body.actionCard?.metadata
 
     res.json({
       success: true,
       chainId: body.chainId,
-      willSucceed: true,
+      willSucceed: canSimulate(body.actionCard),
       gasEstimateUsd: analysis.gasEstimateUsd,
       estimatedRoute: analysis.route,
       warnings: analysis.warnings,
+      executionMode: metadata?.routeId ? 'quote-backed' : 'preview-only',
+      steps: metadata?.steps ?? null,
+      estimatedFeeUsd: formatUsd(metadata?.estimatedFeeUsd),
     })
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -53,14 +80,14 @@ txRouter.post('/simulate', async (req, res) => {
 txRouter.post('/broadcast', async (req, res) => {
   try {
     const body = ExecuteSchema.parse(req.body)
-    const txHash = makeTxHash(body.walletAddress, body.actionCard.title)
+    const txHash = (body.txHash as `0x${string}` | undefined) ?? makeTxHash(body.walletAddress, getExecutionSalt(body.actionCard))
 
-    await persistExecution(body.walletAddress, body.chainId, body.actionCard, txHash)
+    await persistExecution(body.walletAddress, body.chainId, body.actionCard, txHash, body.executionStatus ?? 'pending')
 
     res.json({
       hash: txHash,
-      status: 'pending',
-      explorerUrl: getExplorerUrl(body.chainId, txHash),
+      status: body.executionStatus ?? 'pending',
+      explorerUrl: body.explorerUrl ?? getExplorerUrl(body.chainId, txHash),
     })
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -73,18 +100,25 @@ txRouter.post('/broadcast', async (req, res) => {
 txRouter.post('/execute', async (req, res) => {
   try {
     const body = ExecuteSchema.parse(req.body)
-    const txHash = makeTxHash(body.walletAddress, `${body.actionCard.type}:${Date.now()}`)
+    const txHash = (body.txHash as `0x${string}` | undefined) ?? makeTxHash(body.walletAddress, getExecutionSalt(body.actionCard))
+    const metadata = body.actionCard.metadata
+    const analysis = summarizeAction(body.actionCard)
+    const status = body.executionStatus ?? 'pending'
 
-    await persistExecution(body.walletAddress, body.chainId, body.actionCard, txHash)
+    await persistExecution(body.walletAddress, body.chainId, body.actionCard, txHash, status)
 
     res.json({
       success: true,
+      executionMode: body.txHash ? 'wallet-submitted' : metadata?.routeId ? 'quote-backed-preview' : 'preview-only',
       transaction: {
         hash: txHash,
-        chainId: body.chainId,
-        status: 'pending',
+        chainId: metadata?.fromChainId ?? body.chainId,
+        status,
         type: body.actionCard.type,
-        explorerUrl: getExplorerUrl(body.chainId, txHash),
+        explorerUrl: body.explorerUrl ?? getExplorerUrl(body.chainId, txHash),
+        routeId: metadata?.routeId ?? null,
+        routeSteps: metadata?.steps ?? null,
+        gasEstimateUsd: analysis.gasEstimateUsd,
       },
       actionCard: {
         ...body.actionCard,
@@ -104,7 +138,8 @@ async function persistExecution(
   walletAddress: string,
   chainId: number,
   actionCard: z.infer<typeof ActionCardSchema>,
-  txHash: `0x${string}`
+  txHash: `0x${string}`,
+  status: 'pending' | 'confirmed'
 ) {
   const user = await getUserByWalletAddress(walletAddress)
   const type = normalizeType(actionCard.type)
@@ -113,26 +148,40 @@ async function persistExecution(
   if (user) {
     await saveTransaction(user.id, {
       txHash,
-      chainId,
+      chainId: actionCard.metadata?.fromChainId ?? chainId,
       txType: type,
-      status: 'pending',
+      status,
       fromAddress: walletAddress,
+      toAddress: actionCard.metadata?.toAddress,
       valueFormatted: summary.amountLabel,
       bridgeProtocol: summary.route,
-      fromChainId: type === 'bridge' ? chainId : undefined,
-      toChainId: type === 'bridge' ? 1 : undefined,
+      fromChainId: actionCard.metadata?.fromChainId,
+      toChainId: actionCard.metadata?.toChainId,
+      tokenIn: actionCard.metadata?.fromTokenSymbol && actionCard.metadata?.fromAmount
+        ? {
+            symbol: actionCard.metadata.fromTokenSymbol,
+            amount: actionCard.metadata.fromAmount,
+          }
+        : undefined,
+      tokenOut: actionCard.metadata?.toTokenSymbol && actionCard.metadata?.toAmount
+        ? {
+            symbol: actionCard.metadata.toTokenSymbol,
+            amount: actionCard.metadata.toAmount,
+          }
+        : undefined,
     })
 
     await logExecution({
       userId: user.id,
       strategyType: type,
-      status: 'success',
+      status: status === 'confirmed' ? 'success' : 'pending',
       description: actionCard.title,
       txHash,
       chainId,
       amountUsd: summary.estimatedUsd,
       metadata: {
         rows: actionCard.rows,
+        actionMetadata: actionCard.metadata ?? null,
       },
     })
   }
@@ -145,8 +194,10 @@ function normalizeType(type: string) {
 
 function summarizeAction(actionCard?: z.infer<typeof ActionCardSchema>) {
   const rows = actionCard?.rows ?? []
-  const route = rows.find((row) => /route|protocol|network/i.test(row.label))?.value ?? 'Base'
-  const gasEstimateUsd = rows.find((row) => /gas/i.test(row.label))?.value ?? '~$0.05'
+  const route = actionCard?.metadata?.tool
+    ? `${actionCard.metadata.tool}${actionCard.metadata.fromChainId ? ` · ${chainName(actionCard.metadata.fromChainId)}` : ''}`
+    : rows.find((row) => /route|protocol|network/i.test(row.label))?.value ?? 'Base'
+  const gasEstimateUsd = formatUsd(actionCard?.metadata?.estimatedGasUsd) ?? rows.find((row) => /gas/i.test(row.label))?.value ?? '~$0.05'
   const amountLabel = rows.find((row) => /amount|you send|from/i.test(row.label))?.value ?? actionCard?.title ?? 'Execution'
   const estimatedUsd = parseUsd(rows.map((row) => row.value).join(' '))
   const warnings = actionCard?.type === 'bridge'
@@ -154,6 +205,13 @@ function summarizeAction(actionCard?: z.infer<typeof ActionCardSchema>) {
     : []
 
   return { route, gasEstimateUsd, amountLabel, estimatedUsd, warnings }
+}
+
+function canSimulate(actionCard?: z.infer<typeof ActionCardSchema>) {
+  if (!actionCard) return false
+  if (actionCard.type === 'send') return Boolean(actionCard.metadata?.toAddress && actionCard.metadata?.fromAmount)
+  if (actionCard.type === 'swap' || actionCard.type === 'bridge') return Boolean(actionCard.metadata?.routeId)
+  return false
 }
 
 function parseUsd(input: string) {
@@ -168,7 +226,23 @@ function makeTxHash(walletAddress: string, salt: string) {
   return `0x${base.padEnd(64, '0')}` as `0x${string}`
 }
 
+function getExecutionSalt(actionCard: z.infer<typeof ActionCardSchema>) {
+  return actionCard.metadata?.routeId
+    ?? actionCard.metadata?.toAddress
+    ?? `${actionCard.type}:${Date.now()}`
+}
+
 function getExplorerUrl(chainId: number, txHash: string) {
   const host = chainId === 1 ? 'https://etherscan.io' : 'https://basescan.org'
   return `${host}/tx/${txHash}`
+}
+
+function formatUsd(value?: number) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  if (value < 0.01) return '<$0.01'
+  return `$${value.toFixed(2)}`
+}
+
+function chainName(chainId: number) {
+  return chainId === 1 ? 'Ethereum' : chainId === 8453 ? 'Base' : `Chain ${chainId}`
 }

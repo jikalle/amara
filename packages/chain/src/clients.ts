@@ -15,18 +15,26 @@ export const publicClients = {
 }
 
 export function getPublicClient(chainId: number) {
-  const map: Record<number, typeof publicClients.base> = {
-    8453:  publicClients.base,
-    1:     publicClients.ethereum,
-    42161: publicClients.arbitrum,
-    10:    publicClients.optimism,
-    56:    publicClients.bnb,
-    137:   publicClients.polygon,
-    43114: publicClients.avalanche,
-    324:   publicClients.zksync,
-    59144: publicClients.linea,
+  switch (chainId) {
+    case 8453:
+      return publicClients.base
+    case 1:
+      return publicClients.ethereum
+    case 42161:
+      return publicClients.arbitrum
+    case 10:
+      return publicClients.optimism
+    case 56:
+      return publicClients.bnb
+    case 137:
+      return publicClients.polygon
+    case 43114:
+      return publicClients.avalanche
+    case 324:
+      return publicClients.zksync
+    case 59144:
+      return publicClients.linea
+    default:
+      throw new Error(`Unsupported chain: ${chainId}`)
   }
-  const client = map[chainId]
-  if (!client) throw new Error(`Unsupported chain: ${chainId}`)
-  return client
 }

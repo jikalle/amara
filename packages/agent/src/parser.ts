@@ -31,10 +31,11 @@ export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
     return parseIntentLocally(userMessage)
   }
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 512,
-    system: `Parse the user's wallet command into structured JSON.
+  try {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 512,
+      system: `Parse the user's wallet command into structured JSON.
 Output ONLY valid JSON matching this schema, no markdown:
 {
   "type": "swap|send|bridge|query|strategy|settings|unknown",
@@ -49,20 +50,14 @@ Examples:
 - "bridge 500 USDC from Base to Arbitrum" → type: "bridge", params: {fromToken: "USDC", amount: "500", fromChain: "base", toChain: "arbitrum"}
 - "what's my ETH balance?" → type: "query", params: {queryType: "balance"}
 - "pause arb bot" → type: "strategy", params: {action: "pause", strategyId: "arb"}`,
-    messages: [{ role: 'user', content: userMessage }],
-  })
+      messages: [{ role: 'user', content: userMessage }],
+    })
 
-  try {
     const text = response.content[0]?.type === 'text' ? response.content[0].text : '{}'
     const parsed = JSON.parse(text.trim())
     return IntentSchema.parse(parsed) as ParsedIntent
   } catch {
-    return {
-      type: 'unknown',
-      confidence: 0,
-      requiresConfirmation: false,
-      params: {},
-    }
+    return parseIntentLocally(userMessage)
   }
 }
 
