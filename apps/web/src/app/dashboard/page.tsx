@@ -6,6 +6,7 @@ import { AnaraLogo, KenteStrip, Badge, Card, StatGrid, LiveDot } from '../../com
 import { colors, shadows } from '../../lib/ui-tokens'
 import { useWalletStore, useAgentStore, useUIStore } from '../../store'
 import { useAgent } from '../../hooks/useAgent'
+import { track } from '../../lib/analytics'
 import { resolveWalletIdentity } from '../../lib/wallet'
 import { useAuth } from '../../lib/auth'
 import type { WalletChainSummary, WalletNftSummary } from '@anara/types'
@@ -14,11 +15,12 @@ export default function DashboardPage() {
   const { ready, authenticated, user, logout } = useAuth()
   const router  = useRouter()
   const { fetchBrief, fetchStatus, refreshWallet } = useAgent()
-  const { totalUsd, tokens, nfts, chains, transactions, isLoading, error, hasWallet, lastUpdated, setAddress, setHasWallet } = useWalletStore()
+  const { address, totalUsd, tokens, nfts, chains, transactions, isLoading, error, hasWallet, lastUpdated, setAddress, setHasWallet } = useWalletStore()
   const { state: agentState, brief, setChatOpen } = useAgentStore()
   const [showBrief, setShowBrief]   = useState(true)
   const [activeTab, setActiveTab]   = useState<'activity' | 'assets' | 'nfts'>('activity')
   const [chainOpen, setChainOpen]   = useState(false)
+  const [trackedDashboardLoad, setTrackedDashboardLoad] = useState(false)
 
   useEffect(() => {
     if (ready && !authenticated) router.push('/onboard')
@@ -36,6 +38,33 @@ export default function DashboardPage() {
       }
     }
   }, [authenticated, user, setAddress, setHasWallet, fetchBrief, fetchStatus, refreshWallet])
+
+  useEffect(() => {
+    if (!authenticated || !hasWallet || isLoading || trackedDashboardLoad) return
+
+    track('dashboard_loaded', {
+      walletAddress: address,
+      totalUsd,
+      tokenCount: tokens.length,
+      nftCount: nfts.length,
+      transactionCount: transactions.length,
+      chainCount: chains.length,
+      hasError: Boolean(error),
+    })
+    setTrackedDashboardLoad(true)
+  }, [
+    authenticated,
+    hasWallet,
+    isLoading,
+    trackedDashboardLoad,
+    address,
+    totalUsd,
+    tokens.length,
+    nfts.length,
+    transactions.length,
+    chains.length,
+    error,
+  ])
 
   if (!ready || !authenticated) return <LoadingSplash />
 
@@ -248,6 +277,8 @@ function MissingWalletState() {
 }
 
 function BriefModal({ brief, onDismiss }: { brief: Brief; onDismiss: () => void }) {
+  const events = Array.isArray(brief.events) ? brief.events : []
+
   return (
     <div className="min-h-screen bg-earth/97 flex items-start justify-center p-6 overflow-y-auto">
       <div className="w-full max-w-sm bg-soil border border-border overflow-hidden mt-4">
@@ -273,22 +304,28 @@ function BriefModal({ brief, onDismiss }: { brief: Brief; onDismiss: () => void 
 
           {/* Events */}
           <div className="flex flex-col gap-2">
-            {brief.events.map((ev, i) => (
-              <div key={i} className="flex gap-3 items-start bg-clay border border-border p-3">
-                <div className={`w-7 h-7 flex items-center justify-center text-sm flex-shrink-0 border border-border/50 ${
-                  ev.type === 'arb' ? 'bg-kola/15' : ev.type === 'yield' ? 'bg-gold/12' : 'bg-teal/10'
-                }`}>
-                  {ev.type === 'arb' ? '⚡' : ev.type === 'yield' ? '🌾' : ev.type === 'rebalance' ? '⚖️' : '🏗️'}
-                </div>
-                <div className="flex-1">
-                  <div className="text-[12px] text-cream">{ev.description}</div>
-                  <div className="flex gap-2 mt-1">
-                    <span className="text-[10px] text-muted font-mono">{ev.timeAgo}</span>
-                    {ev.profitUsd && <span className="text-[10px] font-bold text-green font-mono">{ev.profitUsd}</span>}
+            {events.length ? (
+              events.map((ev, i) => (
+                <div key={i} className="flex gap-3 items-start bg-clay border border-border p-3">
+                  <div className={`w-7 h-7 flex items-center justify-center text-sm flex-shrink-0 border border-border/50 ${
+                    ev.type === 'arb' ? 'bg-kola/15' : ev.type === 'yield' ? 'bg-gold/12' : 'bg-teal/10'
+                  }`}>
+                    {ev.type === 'arb' ? '⚡' : ev.type === 'yield' ? '🌾' : ev.type === 'rebalance' ? '⚖️' : '🏗️'}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[12px] text-cream">{ev.description}</div>
+                    <div className="flex gap-2 mt-1">
+                      <span className="text-[10px] text-muted font-mono">{ev.timeAgo}</span>
+                      {ev.profitUsd && <span className="text-[10px] font-bold text-green font-mono">{ev.profitUsd}</span>}
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="bg-clay border border-border p-3 text-[12px] text-muted">
+                No recent agent events yet.
               </div>
-            ))}
+            )}
           </div>
         </div>
 

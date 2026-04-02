@@ -18,6 +18,7 @@ export default function DashboardChatPage() {
   const router = useRouter()
   const { messages, isThinking, sendMessage, executeAction, cancelAction } = useAgent()
   const clearChat = useAgentStore((state) => state.clearChat)
+  const featureFlags = useAgentStore((state) => state.state.featureFlags)
   const hasWallet = useWalletStore((state) => state.hasWallet)
   const address = useWalletStore((state) => state.address)
   const [input, setInput] = useState('')
@@ -75,6 +76,12 @@ export default function DashboardChatPage() {
         <div className="bg-soil border border-border px-4 py-3 text-xs text-muted leading-5">
           Anara prepares previews and submits transactions only after your confirmation. Network fees, slippage, bridge delays, and external protocol failures can still affect outcomes.
         </div>
+
+        {featureFlags?.allowBridges === false && (
+          <div className="bg-teal/10 border border-teal/30 px-4 py-3 text-xs text-text2 leading-5">
+            Bridge actions are currently disabled for this beta environment. Swap and send flows remain available.
+          </div>
+        )}
 
         {messages.length === 0 && (
           <div className="bg-soil border border-border p-4">

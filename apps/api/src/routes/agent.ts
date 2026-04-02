@@ -4,6 +4,7 @@ import { runAgent } from '@anara/agent'
 import { getRecentExecutions, getUserByPrivyId, getUserByWalletAddress, upsertUser } from '../db/client'
 import { requireAuth, type AuthenticatedRequest } from '../middleware/auth'
 import { getAuthorizedWalletAddress, isAuthorizationError } from '../lib/authz'
+import { evaluateFeatureAccess, getFeatureFlags } from '../lib/feature-flags'
 import { logErrorEvent, logEvent, logWarn } from '../middleware/logger'
 
 export const agentRouter = Router()
@@ -38,6 +39,24 @@ agentRouter.post('/chat', requireAuth, async (req: AuthenticatedRequest, res) =>
       walletAddress,
       chainId: body.chainId,
     })
+
+    const gatedActionType = result.actionCard?.type ?? result.intent ?? null
+    const featureAccess = evaluateFeatureAccess(gatedActionType)
+    if (!featureAccess.allowed) {
+      logWarn('agent_chat_blocked_by_feature_flag', {
+        userId: req.userId,
+        walletAddress,
+        chainId: body.chainId,
+        actionType: gatedActionType,
+      })
+      return res.json({
+        message: featureAccess.message,
+        actionCard: null,
+        requiresConfirmation: false,
+        intent: result.intent,
+        timestamp: Date.now(),
+      })
+    }
 
     res.json({
       message: result.message,
@@ -171,6 +190,7 @@ agentRouter.get('/status', (_req, res) => {
     errorsToday: 0,
     profitToday: '+$70.50',
     uptime: '99.9%',
+    featureFlags: getFeatureFlags(),
   })
 })
 

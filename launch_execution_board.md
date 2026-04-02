@@ -250,3 +250,8 @@ Call this beta-ready when:
 - Guardrails are persisted and enforced
 - Product copy matches actual capabilities
 - Support has a known limitations doc and a basic incident path
+
+## Supporting Docs
+
+- [staging_regression_checklist.md](/home/mafita/amara/staging_regression_checklist.md)
+- [known_limitations_and_support.md](/home/mafita/amara/known_limitations_and_support.md)

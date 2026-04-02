@@ -15,6 +15,7 @@ import {
   type User,
 } from '@privy-io/react-auth'
 import { base, mainnet } from 'viem/chains'
+import { track } from './analytics'
 import { resolveWalletIdentity } from './wallet'
 
 type LoginMethod = 'email' | 'sms' | 'wallet' | 'google'
@@ -106,6 +107,7 @@ function AuthSessionProvider({ children }: { children: React.ReactNode }) {
     if (!ready || !authenticated || !identityToken || !user?.id) return
 
     const { address } = resolveWalletIdentity(user)
+    const currentUser = user
     const syncKey = `${user.id}:${address ?? 'no-wallet'}`
     if (lastSyncedRef.current === syncKey) return
 
@@ -130,6 +132,16 @@ function AuthSessionProvider({ children }: { children: React.ReactNode }) {
 
         if (!cancelled) {
           lastSyncedRef.current = syncKey
+          track('signup_completed', {
+            userId: currentUser.id,
+            method: getPrimaryLoginMethod(currentUser),
+          })
+          if (address) {
+            track('wallet_linked', {
+              userId: currentUser.id,
+              walletAddress: address,
+            })
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -169,4 +181,12 @@ export function useAuth() {
     throw new Error('useAuth must be used within AuthProvider')
   }
   return context
+}
+
+function getPrimaryLoginMethod(user: User) {
+  if (user.email?.address) return 'email'
+  if (user.phone?.number) return 'sms'
+  if (user.google?.email) return 'google'
+  if (user.wallet?.address || user.linkedAccounts?.some((account) => account.type === 'wallet')) return 'wallet'
+  return 'unknown'
 }

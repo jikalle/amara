@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { useActiveWallet, usePrivy, useWallets, type ConnectedWallet } from '@privy-io/react-auth'
 import { executeSwap, getSwapQuote } from '@anara/chain'
 import { useAgentStore, useWalletStore } from '../store'
+import { track } from '../lib/analytics'
 import type {
   AgentActionCard,
   AgentActionMetadata,
@@ -64,6 +65,12 @@ export function useAgent() {
       timestamp: Date.now(),
     }
     addMessage(userMsg)
+    track('chat_submitted', {
+      sessionId,
+      walletAddress: address,
+      chainId: chainId ?? 8453,
+      messageLength: content.trim().length,
+    })
     setThinking(true)
 
     try {
@@ -91,6 +98,15 @@ export function useAgent() {
         actionCard: data.actionCard ?? undefined,
       }
       addMessage(agentMsg)
+      if (data.actionCard) {
+        track('preview_generated', {
+          sessionId,
+          walletAddress: address,
+          chainId: chainId ?? 8453,
+          actionType: data.actionCard.metadata?.kind ?? data.intent ?? 'unknown',
+          requiresConfirmation: Boolean(data.requiresConfirmation),
+        })
+      }
     } catch (err) {
       const errMsg: AgentMessage = {
         id:        generateId(),
@@ -114,8 +130,9 @@ export function useAgent() {
         body: JSON.stringify({ walletAddress: address }),
       })
       const data = await res.json()
-      setBrief(data)
-      return data
+      const brief = normalizeBrief(data)
+      setBrief(brief)
+      return brief
     } catch {
       setBrief(null)
       return null
@@ -259,6 +276,12 @@ export function useAgent() {
         ...msg,
         actionCard: data.actionCard ?? { ...card, status: 'submitted', txHash: submitted.txHash },
       }))
+      track('tx_submitted', {
+        walletAddress: address,
+        chainId: submitted.chainId,
+        txHash: submitted.txHash,
+        actionType: card.metadata?.kind ?? 'unknown',
+      })
       addMessage({
         id: generateId(),
         role: 'assistant',
@@ -284,6 +307,12 @@ export function useAgent() {
         role: 'assistant',
         content: errorMessage,
         timestamp: Date.now(),
+      })
+      track('tx_failed', {
+        walletAddress: address,
+        chainId: chainId ?? 8453,
+        actionType: card.metadata?.kind ?? 'unknown',
+        reason: errorMessage,
       })
       throw err
     }
@@ -324,6 +353,18 @@ function buildExecutionSuccessMessage(txHash?: string, route?: string, gasEstima
   return parts.join('\n')
 }
 
+function normalizeBrief(data: unknown) {
+  const brief = (data && typeof data === 'object') ? (data as Record<string, unknown>) : {}
+  return {
+    summary: typeof brief.summary === 'string' ? brief.summary : 'No recent agent summary is available yet.',
+    totalProfitUsd: typeof brief.totalProfitUsd === 'string' ? brief.totalProfitUsd : '$0.00',
+    actionsCount: typeof brief.actionsCount === 'number' ? brief.actionsCount : 0,
+    errorsCount: typeof brief.errorsCount === 'number' ? brief.errorsCount : 0,
+    events: Array.isArray(brief.events) ? brief.events : [],
+    generatedAt: typeof brief.generatedAt === 'number' ? brief.generatedAt : Date.now(),
+  }
+}
+
 async function monitorTransaction(
   messageId: string,
   txHash: `0x${string}`,
@@ -351,6 +392,10 @@ async function monitorTransaction(
             : msg.actionCard,
         }))
         if (data.status === 'confirmed') {
+          track('tx_confirmed', {
+            chainId,
+            txHash,
+          })
           await onConfirmed?.()
           useAgentStore.getState().addMessage({
             id: `msg_confirmed_${txHash}_${Date.now()}`,
@@ -359,6 +404,11 @@ async function monitorTransaction(
             timestamp: Date.now(),
           })
         } else {
+          track('tx_failed', {
+            chainId,
+            txHash,
+            reason: 'onchain_failed',
+          })
           useAgentStore.getState().addMessage({
             id: `msg_failed_${txHash}_${Date.now()}`,
             role: 'assistant',

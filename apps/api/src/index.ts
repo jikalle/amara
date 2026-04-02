@@ -8,6 +8,7 @@ import { authRouter }     from './routes/auth'
 import { walletRouter }   from './routes/wallet'
 import { strategyRouter } from './routes/strategy'
 import { txRouter }       from './routes/transactions'
+import { monitoringRouter } from './routes/monitoring'
 import { requestLogger, errorHandler, notFound } from './middleware/logger'
 
 export function createApp() {
@@ -35,6 +36,12 @@ export function createApp() {
     message: { error: 'Too many transaction requests, slow down.' },
   }))
 
+  app.use('/api/monitoring', rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    message: { error: 'Too many monitoring events, slow down.' },
+  }))
+
   app.use(express.json({ limit: '1mb' }))
   app.use(requestLogger)
 
@@ -51,6 +58,7 @@ export function createApp() {
   app.use('/api/wallet', walletRouter)
   app.use('/api/strategy', strategyRouter)
   app.use('/api/tx', txRouter)
+  app.use('/api/monitoring', monitoringRouter)
 
   app.use(notFound)
   app.use(errorHandler)

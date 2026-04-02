@@ -5,6 +5,7 @@ import { getAgentSettings, getUserByPrivyId, getUserByWalletAddress, logExecutio
 import { getPublicClient } from '@anara/chain'
 import { requireAuth, type AuthenticatedRequest } from '../middleware/auth'
 import { getAuthorizedWalletAddress, isAuthorizationError } from '../lib/authz'
+import { evaluateFeatureAccess } from '../lib/feature-flags'
 import { evaluateGuardrails } from '../lib/guardrails'
 import { logErrorEvent, logEvent, logWarn } from '../middleware/logger'
 
@@ -74,12 +75,14 @@ txRouter.post('/simulate', async (req: AuthenticatedRequest, res) => {
       actionKind: body.actionCard?.metadata?.kind ?? null,
     })
     const analysis = summarizeAction(body.actionCard)
+    const featureAccess = evaluateFeatureAccess(body.actionCard?.type)
     const metadata = body.actionCard?.metadata
     const balanceCheck = await getBalanceCheck(walletAddress, metadata, body.chainId)
     const user = await getOrCreateAuthenticatedUser(req)
     const settings = await getAgentSettings(user.id)
     const guardrailCheck = evaluateGuardrails(body.actionCard?.type, analysis.estimatedUsd, settings)
     const warnings = [
+      ...(featureAccess.message ? [featureAccess.message] : []),
       ...analysis.warnings,
       ...(balanceCheck.warning ? [balanceCheck.warning] : []),
       ...(guardrailCheck.warning ? [guardrailCheck.warning] : []),
@@ -88,7 +91,7 @@ txRouter.post('/simulate', async (req: AuthenticatedRequest, res) => {
     res.json({
       success: true,
       chainId: body.chainId,
-      willSucceed: canSimulate(body.actionCard) && balanceCheck.sufficient && guardrailCheck.allowed,
+      willSucceed: featureAccess.allowed && canSimulate(body.actionCard) && balanceCheck.sufficient && guardrailCheck.allowed,
       gasEstimateUsd: analysis.gasEstimateUsd,
       estimatedRoute: analysis.route,
       warnings,
@@ -102,7 +105,7 @@ txRouter.post('/simulate', async (req: AuthenticatedRequest, res) => {
       walletAddress,
       chainId: body.chainId,
       actionType: body.actionCard?.type ?? null,
-      willSucceed: canSimulate(body.actionCard) && balanceCheck.sufficient && guardrailCheck.allowed,
+      willSucceed: featureAccess.allowed && canSimulate(body.actionCard) && balanceCheck.sufficient && guardrailCheck.allowed,
       warningCount: warnings.length,
     })
   } catch (err) {
@@ -132,6 +135,16 @@ txRouter.post('/broadcast', async (req: AuthenticatedRequest, res) => {
   try {
     const body = ExecuteSchema.parse(req.body)
     const walletAddress = getAuthorizedWalletAddress(req.walletAddress, body.walletAddress)
+    const featureAccess = evaluateFeatureAccess(body.actionCard.type)
+    if (!featureAccess.allowed) {
+      logWarn('tx_broadcast_blocked_by_feature_flag', {
+        userId: req.userId,
+        walletAddress,
+        chainId: body.chainId,
+        actionType: body.actionCard.type,
+      })
+      return res.status(403).json({ error: featureAccess.message })
+    }
     const txHash = (body.txHash as `0x${string}` | undefined) ?? makeTxHash(walletAddress, getExecutionSalt(body.actionCard))
     logEvent('tx_broadcast_requested', {
       userId: req.userId,
@@ -183,6 +196,16 @@ txRouter.post('/execute', async (req: AuthenticatedRequest, res) => {
   try {
     const body = ExecuteSchema.parse(req.body)
     const walletAddress = getAuthorizedWalletAddress(req.walletAddress, body.walletAddress)
+    const featureAccess = evaluateFeatureAccess(body.actionCard.type)
+    if (!featureAccess.allowed) {
+      logWarn('tx_execute_blocked_by_feature_flag', {
+        userId: req.userId,
+        walletAddress,
+        chainId: body.chainId,
+        actionType: body.actionCard.type,
+      })
+      return res.status(403).json({ error: featureAccess.message })
+    }
     logEvent('tx_execute_requested', {
       userId: req.userId,
       walletAddress,

@@ -53,6 +53,11 @@ export interface AgentState {
   actionsToday: number
   errorsToday: number
   profitToday: string
+  featureFlags?: {
+    allowSwaps: boolean
+    allowBridges: boolean
+    allowSends: boolean
+  }
   recentActions: AgentExecution[]
 }
 
