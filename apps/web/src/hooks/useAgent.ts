@@ -336,6 +336,88 @@ export function useAgent() {
     }))
   }, [updateMessage])
 
+  const executeStandaloneAction = useCallback(async (
+    card: AgentActionCard,
+    onCardChange?: (nextCard: AgentActionCard) => void
+  ) => {
+    if (!address) {
+      throw new Error('A linked wallet is required before this action can be executed.')
+    }
+    if (!walletsReady) {
+      throw new Error('Wallet connectivity is still initializing. Try again in a moment.')
+    }
+
+    onCardChange?.({ ...card, status: 'executing' })
+
+    try {
+      const simulationRes = await fetch(`${API_URL}/api/tx/simulate`, {
+        method: 'POST',
+        headers: buildHeaders(identityToken),
+        body: JSON.stringify({
+          walletAddress: address,
+          chainId: chainId ?? 8453,
+          actionCard: card,
+        }),
+      })
+
+      if (!simulationRes.ok) throw new Error(`Simulation failed: ${simulationRes.status}`)
+      const simulation = await simulationRes.json()
+      if (!simulation?.willSucceed) {
+        const reason = simulation?.warnings?.[0] || 'This action is not executable right now.'
+        throw new Error(reason)
+      }
+
+      const submitted = await submitAction(
+        card,
+        address,
+        chainId ?? 8453,
+        wallets,
+        isExecutionWallet(activeWallet) ? activeWallet : undefined,
+        connectActiveWallet,
+        getEthereumProvider
+      )
+
+      const res = await fetch(`${API_URL}/api/tx/execute`, {
+        method: 'POST',
+        headers: buildHeaders(identityToken),
+        body: JSON.stringify({
+          walletAddress: address,
+          chainId: submitted.chainId,
+          txHash: submitted.txHash,
+          explorerUrl: submitted.explorerUrl,
+          executionStatus: 'pending',
+          actionCard: card,
+        }),
+      })
+
+      if (!res.ok) throw new Error(`Execution failed: ${res.status}`)
+      const data = await res.json()
+      const nextCard = data.actionCard ?? { ...card, status: 'submitted', txHash: submitted.txHash }
+      onCardChange?.(nextCard)
+
+      track('tx_submitted', {
+        walletAddress: address,
+        chainId: submitted.chainId,
+        txHash: submitted.txHash,
+        actionType: card.metadata?.kind ?? 'unknown',
+      })
+
+      void monitorStandaloneTransaction(nextCard, submitted.txHash, submitted.chainId, onCardChange, refreshWallet)
+      await refreshWallet()
+      return data
+    } catch (err) {
+      onCardChange?.({ ...card, status: 'failed' })
+      const errorMessage = getUserFacingExecutionError(err)
+      track('tx_failed', {
+        walletAddress: address,
+        chainId: chainId ?? 8453,
+        actionType: card.metadata?.kind ?? 'unknown',
+        reason: errorMessage,
+      })
+      throw err
+    }
+  }, [address, chainId, identityToken, refreshWallet, wallets, walletsReady, activeWallet, connectActiveWallet, getEthereumProvider])
+
   return {
     messages,
     isThinking,
@@ -344,6 +426,7 @@ export function useAgent() {
     fetchStatus,
     refreshWallet,
     executeAction,
+    executeStandaloneAction,
     cancelAction,
   }
 }
@@ -461,6 +544,56 @@ async function monitorTransaction(
       if (!announcedPending) {
         announcedPending = true
       }
+    } catch {
+      // Keep polling quietly while the tx is propagating.
+    }
+  }
+}
+
+async function monitorStandaloneTransaction(
+  card: AgentActionCard,
+  txHash: `0x${string}`,
+  chainId: number,
+  onCardChange?: (nextCard: AgentActionCard) => void,
+  onConfirmed?: () => Promise<unknown>,
+) {
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    await delay(attempt === 0 ? 1000 : 2000)
+
+    try {
+      const res = await fetch(`${API_URL}/api/tx/status/${chainId}/${txHash}`)
+      if (!res.ok) continue
+      const data = await res.json()
+
+      if (data.status === 'confirmed' || data.status === 'failed') {
+        const nextStatus = data.status === 'confirmed' ? 'confirmed' : 'failed'
+        onCardChange?.({
+          ...card,
+          status: nextStatus,
+          txHash,
+        })
+
+        if (data.status === 'confirmed') {
+          track('tx_confirmed', {
+            chainId,
+            txHash,
+          })
+          await onConfirmed?.()
+        } else {
+          track('tx_failed', {
+            chainId,
+            txHash,
+            reason: 'onchain_failed',
+          })
+        }
+        return
+      }
+
+      onCardChange?.({
+        ...card,
+        status: 'submitted',
+        txHash,
+      })
     } catch {
       // Keep polling quietly while the tx is propagating.
     }
