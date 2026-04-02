@@ -255,3 +255,4 @@ Call this beta-ready when:
 
 - [staging_regression_checklist.md](/home/mafita/amara/staging_regression_checklist.md)
 - [known_limitations_and_support.md](/home/mafita/amara/known_limitations_and_support.md)
+- [release_decision_sheet.md](/home/mafita/amara/release_decision_sheet.md)
