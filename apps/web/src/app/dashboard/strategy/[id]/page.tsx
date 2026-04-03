@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Badge, Button, Card, KenteStrip } from '../../../../components/ui'
+import { Badge, Button, Card, KenteStrip, ActionCard } from '../../../../components/ui'
 import { useAuth } from '../../../../lib/auth'
 import { resolveWalletIdentity } from '../../../../lib/wallet'
+import { useAgent } from '../../../../hooks/useAgent'
+import type { AgentActionCard } from '@anara/types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
 
@@ -32,15 +34,24 @@ type StrategyResponse = {
   details: Record<string, string | number | boolean>
 }
 
+type StrategyPreviewResponse =
+  | { actionable: true; actionCard: AgentActionCard; summary: string }
+  | { actionable: false; reason: string; summary: string }
+
 export default function StrategyDetailPage() {
   const params = useParams<{ id: string }>()
   const strategyId = params.id
   const apiStrategyId = strategyId === 'reb' ? 'rebalance' : strategyId
   const { ready, authenticated, user, identityToken } = useAuth()
+  const { executeStandaloneAction } = useAgent()
 
   const [strategy, setStrategy] = useState<StrategyResponse | null>(null)
   const [settings, setSettings] = useState<StrategySettings | null>(null)
   const [thresholdInput, setThresholdInput] = useState('')
+  const [previewSummary, setPreviewSummary] = useState<string | null>(null)
+  const [previewReason, setPreviewReason] = useState<string | null>(null)
+  const [previewCard, setPreviewCard] = useState<AgentActionCard | null>(null)
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -158,6 +169,39 @@ export default function StrategyDetailPage() {
     }
   }
 
+  async function generatePreview() {
+    if (!identityToken) return
+    setIsPreviewLoading(true)
+    setPreviewSummary(null)
+    setPreviewReason(null)
+    setPreviewCard(null)
+    setError(null)
+    try {
+      const res = await fetch(`${API_URL}/api/strategy/${apiStrategyId}/preview`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${identityToken}`,
+        },
+      })
+      const data = await res.json() as StrategyPreviewResponse | { error?: string }
+      if (!res.ok) throw new Error(typeof data === 'object' && data && 'error' in data ? data.error ?? 'Failed to generate strategy preview' : 'Failed to generate strategy preview')
+      if (!('actionable' in data)) {
+        throw new Error('Invalid strategy preview response')
+      }
+      setPreviewSummary(data.summary)
+      if (data.actionable) {
+        setPreviewCard(data.actionCard)
+        setPreviewReason(null)
+      } else {
+        setPreviewReason(data.reason)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate strategy preview')
+    } finally {
+      setIsPreviewLoading(false)
+    }
+  }
+
   const status = strategy?.status ?? 'unknown'
   const isAwaitingSession = ready && authenticated && !identityToken
 
@@ -199,7 +243,7 @@ export default function StrategyDetailPage() {
                   <span className="font-mono text-text2">{strategy.type}</span>
                 </div>
                 <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                  <span className="text-muted">Performance</span>
+                  <span className="text-muted">{strategy.type === 'rebalance' ? 'Signal' : 'Performance'}</span>
                   <span className="font-mono text-text2">{strategy.pnl}</span>
                 </div>
                 {Object.entries(strategy.details ?? {}).map(([key, value]) => (
@@ -299,6 +343,16 @@ export default function StrategyDetailPage() {
         </Card>
 
         <div className="flex gap-3">
+          {apiStrategyId === 'rebalance' && (
+            <Button
+              variant="primary"
+              loading={isPreviewLoading}
+              disabled={isPreviewLoading || isSubmitting || !walletIdentity.address || isLoading || isAwaitingSession}
+              onClick={generatePreview}
+            >
+              Generate Rebalance Preview
+            </Button>
+          )}
           <Button
             variant="primary"
             loading={isSubmitting}
@@ -316,6 +370,27 @@ export default function StrategyDetailPage() {
             Pause
           </Button>
         </div>
+
+        {apiStrategyId === 'rebalance' && (previewSummary || previewReason || previewCard) && (
+          <Card className="mt-4">
+            <div className="p-5 space-y-4">
+              <div>
+                <div className="text-[10px] tracking-[0.2em] uppercase text-muted font-bold">Rebalance Action</div>
+                {previewSummary && <div className="mt-2 text-sm text-text2 leading-6">{previewSummary}</div>}
+                {previewReason && <div className="mt-2 text-sm text-muted leading-6">{previewReason}</div>}
+              </div>
+
+              {previewCard && (
+                <ActionCard
+                  card={previewCard}
+                  disabled={isSubmitting}
+                  onConfirm={() => { void executeStandaloneAction(previewCard, setPreviewCard) }}
+                  onCancel={() => setPreviewCard({ ...previewCard, status: 'cancelled' })}
+                />
+              )}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   )

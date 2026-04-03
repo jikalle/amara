@@ -8,6 +8,7 @@ import {
   upsertUser,
 } from '../db/client'
 import { requireAuth, type AuthenticatedRequest } from '../middleware/auth'
+import { buildRebalancePreview, buildRebalanceStrategyView } from '../services/strategy-rebalance'
 
 export const strategyRouter = Router()
 
@@ -68,13 +69,20 @@ strategyRouter.get('/', async (req: AuthenticatedRequest, res) => {
   try {
     const user = await getOrCreateAuthenticatedUser(req)
     const settings = await getAgentSettings(user.id)
+    const rebalanceView = user.wallet_address
+      ? await buildRebalanceStrategyView(user.wallet_address)
+      : null
 
     res.json({
       strategies: strategyCatalog.map((strategy) => ({
         id: strategy.id,
         name: strategy.name,
-        status: settings[strategyFieldMap[strategy.id]] === false ? 'paused' : strategy.defaultStatus,
-        pnl: strategy.pnl,
+        status: settings[strategyFieldMap[strategy.id]] === false
+          ? 'paused'
+          : strategy.id === 'rebalance' && rebalanceView
+            ? rebalanceView.status
+            : strategy.defaultStatus,
+        pnl: strategy.id === 'rebalance' && rebalanceView ? rebalanceView.pnl : strategy.pnl,
         type: strategy.type,
       })),
       settings: serializeSettings(settings),
@@ -98,16 +106,21 @@ strategyRouter.get('/:id', async (req: AuthenticatedRequest, res) => {
 
     const user = await getOrCreateAuthenticatedUser(req)
     const settings = await getAgentSettings(user.id)
-    const status = settings[strategyFieldMap[strategy.id]] === false ? 'paused' : strategy.defaultStatus
+    const rebalanceView = strategy.id === 'rebalance' && user.wallet_address
+      ? await buildRebalanceStrategyView(user.wallet_address)
+      : null
+    const status = settings[strategyFieldMap[strategy.id]] === false
+      ? 'paused'
+      : rebalanceView?.status ?? strategy.defaultStatus
 
     res.json({
       id: strategy.id,
       name: strategy.name,
       status,
       type: strategy.type,
-      pnl: strategy.pnl,
+      pnl: rebalanceView?.pnl ?? strategy.pnl,
       settings: serializeSettings(settings),
-      details: strategyDetailCopy[strategy.id] ?? {},
+      details: rebalanceView?.details ?? strategyDetailCopy[strategy.id] ?? {},
     })
   } catch (err) {
     console.error('[strategy detail]', err)
@@ -162,6 +175,26 @@ strategyRouter.post('/settings', async (req: AuthenticatedRequest, res) => {
     }
     console.error('[strategy settings]', err)
     res.status(500).json({ error: 'Failed to update strategy settings' })
+  }
+})
+
+strategyRouter.post('/:id/preview', async (req: AuthenticatedRequest, res) => {
+  try {
+    const strategyId = normalizeStrategyId(req.params.id)
+    if (strategyId !== 'rebalance') {
+      return res.status(400).json({ error: 'Preview generation is only implemented for rebalance right now.' })
+    }
+
+    const user = await getOrCreateAuthenticatedUser(req)
+    if (!user.wallet_address) {
+      return res.status(400).json({ error: 'A linked wallet is required before generating a rebalance preview.' })
+    }
+
+    const preview = await buildRebalancePreview(user.wallet_address)
+    return res.json(preview)
+  } catch (err) {
+    console.error('[strategy preview]', err)
+    return res.status(500).json({ error: 'Failed to generate strategy preview' })
   }
 })
 
