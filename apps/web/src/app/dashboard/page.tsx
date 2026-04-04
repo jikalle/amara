@@ -369,11 +369,19 @@ function QuickActionSheet({
   const [isSwapPreviewLoading, setIsSwapPreviewLoading] = useState(false)
   const [bridgeToken, setBridgeToken] = useState(defaultToken)
   const [bridgeAmount, setBridgeAmount] = useState('')
-  const [bridgeFromChain, setBridgeFromChain] = useState<'Base' | 'Ethereum'>('Base')
-  const [bridgeToChain, setBridgeToChain] = useState<'Base' | 'Ethereum'>('Ethereum')
+  const [bridgeFromChain, setBridgeFromChain] = useState<BridgeChainName>('Base')
+  const [bridgeToChain, setBridgeToChain] = useState<BridgeChainName>('Ethereum')
+  const bridgeTokenOptions = buildBridgeTokenOptions(tokens, bridgeFromChain, bridgeToChain)
   const [bridgePreviewCard, setBridgePreviewCard] = useState<AgentActionCard | null>(null)
   const [bridgePreviewError, setBridgePreviewError] = useState<string | null>(null)
   const [isBridgePreviewLoading, setIsBridgePreviewLoading] = useState(false)
+
+  useEffect(() => {
+    if (!bridgeTokenOptions.length) return
+    if (!bridgeTokenOptions.some((token) => token.symbol === bridgeToken)) {
+      setBridgeToken(bridgeTokenOptions[0]!.symbol)
+    }
+  }, [bridgeToken, bridgeTokenOptions])
 
   const sheetMeta = {
     send: {
@@ -674,7 +682,7 @@ function QuickActionSheet({
               label="Asset"
               control={(
                 <select value={bridgeToken} onChange={(event) => setBridgeToken(event.target.value)} className={quickInputClassName}>
-                  {tokenOptions.map((token) => (
+                  {bridgeTokenOptions.map((token) => (
                     <option key={`${token.symbol}-${token.chain}`} value={token.symbol}>{token.symbol} · {token.chain}</option>
                   ))}
                 </select>
@@ -695,18 +703,20 @@ function QuickActionSheet({
               <QuickField
                 label="From"
                 control={(
-                  <select value={bridgeFromChain} onChange={(event) => setBridgeFromChain(event.target.value as 'Base' | 'Ethereum')} className={quickInputClassName}>
+                  <select value={bridgeFromChain} onChange={(event) => setBridgeFromChain(event.target.value as BridgeChainName)} className={quickInputClassName}>
                     <option>Base</option>
                     <option>Ethereum</option>
+                    <option>BNB Chain</option>
                   </select>
                 )}
               />
               <QuickField
                 label="To"
                 control={(
-                  <select value={bridgeToChain} onChange={(event) => setBridgeToChain(event.target.value as 'Base' | 'Ethereum')} className={quickInputClassName}>
+                  <select value={bridgeToChain} onChange={(event) => setBridgeToChain(event.target.value as BridgeChainName)} className={quickInputClassName}>
                     <option>Ethereum</option>
                     <option>Base</option>
+                    <option>BNB Chain</option>
                   </select>
                 )}
               />
@@ -721,6 +731,11 @@ function QuickActionSheet({
             {bridgePreviewError && (
               <div className="border border-kola/30 bg-kola/10 px-4 py-3 text-xs text-text2">
                 {bridgePreviewError}
+              </div>
+            )}
+            {!bridgeTokenOptions.length && (
+              <div className="border border-border bg-clay px-4 py-3 text-xs text-text2">
+                No bridgeable assets are available for this chain pair yet.
               </div>
             )}
             {bridgePreviewCard && (
@@ -828,6 +843,29 @@ function buildSendTokenOptions(tokens: TokenBalance[]) {
   }
 
   return options
+}
+
+function buildBridgeTokenOptions(tokens: TokenBalance[], fromChain: BridgeChainName, toChain: BridgeChainName) {
+  const fromChainId = getBridgeChainId(fromChain)
+  const toChainId = getBridgeChainId(toChain)
+  const seen = new Set<string>()
+
+  return tokens
+    .filter((token) =>
+      token.chainId === fromChainId &&
+      (parseUsdAmount(token.balanceUsd) > 0 || parseFloat(token.balanceFormatted || '0') > 0)
+    )
+    .filter((token) => resolveSwapTokenConfig(tokens, token.symbol, toChainId))
+    .map((token) => ({
+      symbol: token.symbol,
+      chain: fromChain,
+    }))
+    .filter((token) => {
+      const key = `${token.symbol}:${token.chain}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
 }
 
 function buildDirectSendPreviewCard(input: {
@@ -991,8 +1029,8 @@ async function buildDirectBridgePreviewCard(input: {
   tokens: TokenBalance[]
   symbol: string
   amount: string
-  fromChainName: 'Base' | 'Ethereum'
-  toChainName: 'Base' | 'Ethereum'
+  fromChainName: BridgeChainName
+  toChainName: BridgeChainName
   fromAddress: string | null
 }) {
   const amount = input.amount.trim()
@@ -1006,8 +1044,8 @@ async function buildDirectBridgePreviewCard(input: {
     return new Error('Choose different source and destination chains for the bridge preview.')
   }
 
-  const fromChainId = input.fromChainName === 'Ethereum' ? 1 : 8453
-  const toChainId = input.toChainName === 'Ethereum' ? 1 : 8453
+  const fromChainId = getBridgeChainId(input.fromChainName)
+  const toChainId = getBridgeChainId(input.toChainName)
   const fromToken = resolveSwapTokenConfig(input.tokens, input.symbol, fromChainId)
   const toToken = resolveSwapTokenConfig(input.tokens, input.symbol, toChainId)
 
@@ -1075,6 +1113,14 @@ async function buildDirectBridgePreviewCard(input: {
   } catch (error) {
     return new Error(error instanceof Error ? error.message : 'Bridge quote failed.')
   }
+}
+
+type BridgeChainName = 'Base' | 'Ethereum' | 'BNB Chain'
+
+function getBridgeChainId(chainName: BridgeChainName) {
+  if (chainName === 'Ethereum') return 1
+  if (chainName === 'BNB Chain') return 56
+  return 8453
 }
 
 function resolveSwapTokenConfig(tokens: TokenBalance[], symbol: string, chainId: number) {
