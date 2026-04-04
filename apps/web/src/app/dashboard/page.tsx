@@ -363,7 +363,7 @@ function QuickActionSheet({
   const [swapFromToken, setSwapFromToken] = useState(defaultToken)
   const [swapToToken, setSwapToToken] = useState(tokenOptions.find((token) => token.symbol !== defaultToken)?.symbol ?? 'USDC')
   const [swapAmount, setSwapAmount] = useState('')
-  const [swapChain, setSwapChain] = useState<'Base' | 'Ethereum'>('Base')
+  const [swapChain, setSwapChain] = useState<SwapChainName>('Base')
   const [swapPreviewCard, setSwapPreviewCard] = useState<AgentActionCard | null>(null)
   const [swapPreviewError, setSwapPreviewError] = useState<string | null>(null)
   const [isSwapPreviewLoading, setIsSwapPreviewLoading] = useState(false)
@@ -637,9 +637,10 @@ function QuickActionSheet({
             <QuickField
               label="Chain"
               control={(
-                <select value={swapChain} onChange={(event) => setSwapChain(event.target.value as 'Base' | 'Ethereum')} className={quickInputClassName}>
+                <select value={swapChain} onChange={(event) => setSwapChain(event.target.value as SwapChainName)} className={quickInputClassName}>
                   <option>Base</option>
                   <option>Ethereum</option>
+                  <option>BNB Chain</option>
                 </select>
               )}
             />
@@ -771,12 +772,12 @@ function buildTokenOptions(tokens: TokenBalance[]) {
   const seen = new Set<string>()
   const options = tokens
       .filter((token) =>
-        (token.chainId === 1 || token.chainId === 8453) &&
+        (token.chainId === 1 || token.chainId === 56 || token.chainId === 8453) &&
         (parseUsdAmount(token.balanceUsd) > 0 || parseFloat(token.balanceFormatted || '0') > 0)
       )
     .map((token) => ({
       symbol: token.symbol,
-      chain: chainMeta[token.chainId]?.name === 'Ethereum' ? 'Ethereum' : 'Base',
+      chain: token.chainId === 1 ? 'Ethereum' : token.chainId === 56 ? 'BNB Chain' : 'Base',
     }))
     .filter((token) => {
       const key = `${token.symbol}:${token.chain}`
@@ -790,6 +791,8 @@ function buildTokenOptions(tokens: TokenBalance[]) {
       { symbol: 'ETH', chain: 'Base' },
       { symbol: 'USDC', chain: 'Base' },
       { symbol: 'ETH', chain: 'Ethereum' },
+      { symbol: 'BNB', chain: 'BNB Chain' },
+      { symbol: 'USDT', chain: 'BNB Chain' },
     ]
   }
 
@@ -892,7 +895,7 @@ async function buildDirectSwapPreviewCard(input: {
   symbolIn: string
   symbolOut: string
   amount: string
-  chainName: 'Base' | 'Ethereum'
+  chainName: SwapChainName
   fromAddress: string | null
 }) {
   const amount = input.amount.trim()
@@ -906,7 +909,7 @@ async function buildDirectSwapPreviewCard(input: {
     return new Error('Choose different assets for the swap preview.')
   }
 
-  const chainId = input.chainName === 'Ethereum' ? 1 : 8453
+  const chainId = getSwapChainId(input.chainName)
   const fromToken = resolveSwapTokenConfig(input.tokens, input.symbolIn, chainId)
   if (!fromToken) {
     return new Error(`${input.symbolIn} is not available on ${input.chainName} for this wallet.`)
@@ -974,6 +977,14 @@ async function buildDirectSwapPreviewCard(input: {
   } catch (error) {
     return new Error(error instanceof Error ? error.message : 'Swap quote failed.')
   }
+}
+
+type SwapChainName = 'Base' | 'Ethereum' | 'BNB Chain'
+
+function getSwapChainId(chainName: SwapChainName) {
+  if (chainName === 'Ethereum') return 1
+  if (chainName === 'BNB Chain') return 56
+  return 8453
 }
 
 async function buildDirectBridgePreviewCard(input: {
@@ -1080,12 +1091,18 @@ function resolveSwapTokenConfig(tokens: TokenBalance[], symbol: string, chainId:
 
 function getKnownTokenConfig(symbol: string, chainId: number) {
   const normalized = symbol.toUpperCase()
-  const knownTokens: Record<string, { decimals: number; addresses: Partial<Record<1 | 8453, string>> }> = {
+  const knownTokens: Record<string, { decimals: number; addresses: Partial<Record<1 | 56 | 8453, string>> }> = {
     ETH: {
       decimals: 18,
       addresses: {
         1: '0x0000000000000000000000000000000000000000',
         8453: '0x0000000000000000000000000000000000000000',
+      },
+    },
+    BNB: {
+      decimals: 18,
+      addresses: {
+        56: '0x0000000000000000000000000000000000000000',
       },
     },
     WETH: {
@@ -1095,11 +1112,18 @@ function getKnownTokenConfig(symbol: string, chainId: number) {
         8453: '0x4200000000000000000000000000000000000006',
       },
     },
+    WBNB: {
+      decimals: 18,
+      addresses: {
+        56: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+      },
+    },
     USDC: {
       decimals: 6,
       addresses: {
         1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
         8453: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        56: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
       },
     },
     USDT: {
@@ -1107,6 +1131,7 @@ function getKnownTokenConfig(symbol: string, chainId: number) {
       addresses: {
         1: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
         8453: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
+        56: '0x55d398326f99059fF775485246999027B3197955',
       },
     },
     DAI: {
@@ -1119,7 +1144,7 @@ function getKnownTokenConfig(symbol: string, chainId: number) {
   }
 
   const config = knownTokens[normalized]
-  const address = config?.addresses[chainId as 1 | 8453]
+  const address = config?.addresses[chainId as 1 | 56 | 8453]
   if (!config || !address) return null
   return { address, decimals: config.decimals }
 }

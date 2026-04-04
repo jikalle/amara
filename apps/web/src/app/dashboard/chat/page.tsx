@@ -325,7 +325,7 @@ function ChatQuickActionPanel({
   const [swapFromToken, setSwapFromToken] = useState(defaultToken)
   const [swapToToken, setSwapToToken] = useState(tokenOptions.find((token) => token.symbol !== defaultToken)?.symbol ?? 'USDC')
   const [swapAmount, setSwapAmount] = useState('')
-  const [swapChain, setSwapChain] = useState<'Base' | 'Ethereum'>('Base')
+  const [swapChain, setSwapChain] = useState<SwapChainName>('Base')
   const [swapPreviewCard, setSwapPreviewCard] = useState<AgentActionCard | null>(null)
   const [swapPreviewError, setSwapPreviewError] = useState<string | null>(null)
   const [isSwapPreviewLoading, setIsSwapPreviewLoading] = useState(false)
@@ -524,9 +524,10 @@ function ChatQuickActionPanel({
           <QuickField
             label="Chain"
             control={(
-              <select value={swapChain} onChange={(event) => setSwapChain(event.target.value as 'Base' | 'Ethereum')} className={quickInputClassName}>
+              <select value={swapChain} onChange={(event) => setSwapChain(event.target.value as SwapChainName)} className={quickInputClassName}>
                 <option>Base</option>
                 <option>Ethereum</option>
+                <option>BNB Chain</option>
               </select>
             )}
           />
@@ -663,12 +664,12 @@ function buildTokenOptions(tokens: TokenBalance[]) {
   const seen = new Set<string>()
   const options = tokens
     .filter((token) =>
-      (token.chainId === 1 || token.chainId === 8453) &&
+      (token.chainId === 1 || token.chainId === 56 || token.chainId === 8453) &&
       (parseUsdAmount(token.balanceUsd) > 0 || parseFloat(token.balanceFormatted || '0') > 0)
     )
     .map((token) => ({
       symbol: token.symbol,
-      chain: token.chainId === 1 ? 'Ethereum' : 'Base',
+      chain: token.chainId === 1 ? 'Ethereum' : token.chainId === 56 ? 'BNB Chain' : 'Base',
     }))
     .filter((token) => {
       const key = `${token.symbol}:${token.chain}`
@@ -682,6 +683,8 @@ function buildTokenOptions(tokens: TokenBalance[]) {
       { symbol: 'ETH', chain: 'Base' },
       { symbol: 'USDC', chain: 'Base' },
       { symbol: 'ETH', chain: 'Ethereum' },
+      { symbol: 'BNB', chain: 'BNB Chain' },
+      { symbol: 'USDT', chain: 'BNB Chain' },
     ]
   }
 
@@ -779,14 +782,14 @@ async function buildDirectSwapPreviewCard(input: {
   symbolIn: string
   symbolOut: string
   amount: string
-  chainName: 'Base' | 'Ethereum'
+  chainName: SwapChainName
   fromAddress: string | null
 }) {
   const amount = input.amount.trim()
   if (!input.fromAddress) return new Error('A linked wallet is required before previewing a swap.')
   if (!amount || Number.parseFloat(amount) <= 0) return new Error('Enter a valid amount before previewing the swap.')
   if (input.symbolIn === input.symbolOut) return new Error('Choose different assets for the swap preview.')
-  const chainId = input.chainName === 'Ethereum' ? 1 : 8453
+  const chainId = getSwapChainId(input.chainName)
   const fromToken = resolveSwapTokenConfig(input.tokens, input.symbolIn, chainId)
   if (!fromToken) return new Error(`${input.symbolIn} is not available on ${input.chainName} for this wallet.`)
   const toToken = resolveSwapTokenConfig(input.tokens, input.symbolOut, chainId)
@@ -844,6 +847,14 @@ async function buildDirectSwapPreviewCard(input: {
   } catch (error) {
     return new Error(error instanceof Error ? error.message : 'Swap quote failed.')
   }
+}
+
+type SwapChainName = 'Base' | 'Ethereum' | 'BNB Chain'
+
+function getSwapChainId(chainName: SwapChainName) {
+  if (chainName === 'Ethereum') return 1
+  if (chainName === 'BNB Chain') return 56
+  return 8453
 }
 
 async function buildDirectBridgePreviewCard(input: {
@@ -932,15 +943,17 @@ function resolveSwapTokenConfig(tokens: TokenBalance[], symbol: string, chainId:
 
 function getKnownTokenConfig(symbol: string, chainId: number) {
   const normalized = symbol.toUpperCase()
-  const knownTokens: Record<string, { decimals: number; addresses: Partial<Record<1 | 8453, string>> }> = {
+  const knownTokens: Record<string, { decimals: number; addresses: Partial<Record<1 | 56 | 8453, string>> }> = {
     ETH: { decimals: 18, addresses: { 1: '0x0000000000000000000000000000000000000000', 8453: '0x0000000000000000000000000000000000000000' } },
+    BNB: { decimals: 18, addresses: { 56: '0x0000000000000000000000000000000000000000' } },
     WETH: { decimals: 18, addresses: { 1: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 8453: '0x4200000000000000000000000000000000000006' } },
-    USDC: { decimals: 6, addresses: { 1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 8453: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' } },
-    USDT: { decimals: 6, addresses: { 1: '0xdAC17F958D2ee523a2206206994597C13D831ec7', 8453: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' } },
+    WBNB: { decimals: 18, addresses: { 56: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c' } },
+    USDC: { decimals: 6, addresses: { 1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 8453: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 56: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' } },
+    USDT: { decimals: 6, addresses: { 1: '0xdAC17F958D2ee523a2206206994597C13D831ec7', 8453: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', 56: '0x55d398326f99059fF775485246999027B3197955' } },
     DAI: { decimals: 18, addresses: { 1: '0x6B175474E89094C44Da98b954EedeAC495271d0F', 8453: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb' } },
   }
   const config = knownTokens[normalized]
-  const address = config?.addresses[chainId as 1 | 8453]
+  const address = config?.addresses[chainId as 1 | 56 | 8453]
   if (!config || !address) return null
   return { address, decimals: config.decimals }
 }
