@@ -4,6 +4,9 @@ Status date: 2026-04-05
 
 Use this when promoting Amara from local/staging to a real hosted environment.
 
+Execution companion:
+- [deployment_checklist.md](/home/mafita/amara/deployment_checklist.md)
+
 ## Deployment Scope
 
 This runbook covers:
