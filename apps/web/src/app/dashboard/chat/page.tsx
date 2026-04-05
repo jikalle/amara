@@ -75,23 +75,23 @@ export default function DashboardChatPage() {
             {!!messages.length && (
               <button
                 onClick={clearChat}
-                className="text-xs border border-border px-3 py-1.5 hover:border-kola/40 hover:text-kola transition-colors"
+                className="rounded-full text-xs border border-border bg-clay/70 px-3 py-1.5 hover:border-kola/40 hover:text-kola transition-colors"
               >
                 Clear
               </button>
             )}
-            <button onClick={() => router.back()} className="text-xs text-muted hover:text-cream transition-colors">
+            <button onClick={() => router.back()} className="rounded-full border border-border bg-clay/55 px-3 py-1.5 text-xs text-muted hover:text-cream transition-colors">
               Back
             </button>
-            <button onClick={() => router.push('/dashboard')} className="text-xs border border-border px-3 py-1.5 hover:border-border2 transition-colors">
+            <button onClick={() => router.push('/dashboard')} className="rounded-full text-xs border border-border bg-clay/70 px-3 py-1.5 hover:border-border2 transition-colors">
               Close
             </button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-5 md:px-6 xl:px-8 xl:gap-8">
-        <section className="min-w-0 flex-1">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:gap-8">
+        <section className="min-w-0 flex-1 max-xl:mx-auto max-xl:w-full max-xl:max-w-2xl">
           {!hasWallet && (
             <div className="bg-kola/10 border border-kola/30 px-4 py-3 text-sm text-text2">
               Link a wallet first to use agent execution flows. Chat remains visible, but send and confirm actions are disabled until a wallet is available.
@@ -133,7 +133,7 @@ export default function DashboardChatPage() {
             </div>
           )}
 
-          <div className="mt-4 border border-border bg-soil shadow-[0_18px_36px_rgba(0,0,0,0.14)]">
+          <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-border bg-soil shadow-[0_18px_36px_rgba(0,0,0,0.14)]">
             <div ref={scrollRef} className="flex flex-col gap-4 overflow-y-auto px-4 py-4 pr-3 xl:min-h-[calc(100vh-17rem)] xl:max-h-[calc(100vh-17rem)] xl:px-5 xl:py-5">
               {action && (
                 <div className="mr-auto max-w-xl xl:max-w-2xl">
@@ -178,7 +178,7 @@ export default function DashboardChatPage() {
             </div>
           </div>
 
-          <div className="mt-4 border border-border bg-soil px-4 py-4 shadow-[0_12px_30px_rgba(0,0,0,0.12)]">
+          <div className="mt-4 rounded-[1.35rem] border border-border bg-soil px-4 py-4 shadow-[0_12px_30px_rgba(0,0,0,0.12)]">
             <div className="flex gap-3 items-end">
               <textarea
                 value={input}
@@ -427,39 +427,50 @@ function ChatQuickActionPanel({
   }
 
   return (
-    <div className="bg-soil border border-border px-4 py-4 text-sm leading-6 xl:max-w-2xl">
-      <div className="flex items-start justify-between gap-4">
+    <div className="overflow-hidden border border-border bg-soil shadow-[0_24px_48px_rgba(0,0,0,0.22)] xl:max-w-2xl">
+      <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-border2" />
+      <div className="mt-3 h-[3px] bg-[repeating-linear-gradient(90deg,#D4920A_0,#D4920A_8px,#C0392B_8px,#C0392B_16px,#E8A020_16px,#E8A020_24px,#221A0E_24px,#221A0E_28px)]" />
+      <div className="flex items-start justify-between gap-4 px-5 py-4">
         <div>
-          <div className="text-sm text-text2">
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">Quick Action</div>
+          <div className="mt-1 font-display text-[22px] font-black text-cream capitalize">{action}</div>
+          <div className="mt-2 text-sm leading-6 text-text2">
             {action === 'receive'
               ? 'Here is your receive flow. You can copy your wallet address directly from chat.'
               : `I opened the ${action} flow here in chat. Fill the form below to generate a preview.`}
           </div>
-          <div className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted font-bold capitalize">
-            {action} Form
-          </div>
         </div>
-        <button onClick={onClose} className="text-xs border border-border px-3 py-1.5 hover:border-border2 transition-colors flex-shrink-0">
+        <button onClick={onClose} className="flex h-8 w-8 items-center justify-center border border-border bg-clay text-xs text-muted hover:border-border2 transition-colors flex-shrink-0">
           Close
         </button>
       </div>
 
       {action === 'receive' ? (
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4 px-5 pb-6">
           <div className="border border-border bg-clay p-4">
             <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted mb-2">Wallet Address</div>
             <div className="font-mono text-[12px] text-text2 break-all">{address ?? 'No linked wallet address available yet.'}</div>
           </div>
+          <div className="grid grid-cols-2 gap-2 border border-border bg-clay/70 p-3 text-[11px] text-text2">
+            <div>
+              <div className="text-[9px] uppercase tracking-[0.16em] text-muted">Supported</div>
+              <div className="mt-1">Base · Ethereum · BNB Chain</div>
+            </div>
+            <div>
+              <div className="text-[9px] uppercase tracking-[0.16em] text-muted">Warning</div>
+              <div className="mt-1">Unsupported deposits may be lost.</div>
+            </div>
+          </div>
           <button
             onClick={handleCopyAddress}
             disabled={!address}
-            className="w-full bg-gold text-earth font-bold text-xs uppercase tracking-wide px-4 py-3 disabled:opacity-50"
+            className="w-full bg-gold text-earth font-bold text-xs uppercase tracking-[0.08em] px-4 py-3 disabled:opacity-50"
           >
             {copied ? 'Copied' : 'Copy Address'}
           </button>
         </div>
       ) : action === 'send' ? (
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4 px-5 pb-6">
           <QuickField
             label="Asset"
             control={(
@@ -491,9 +502,9 @@ function ChatQuickActionPanel({
           <button
             onClick={() => { void handlePreviewSend() }}
             disabled={isSendPreviewLoading}
-            className="w-full bg-gold text-earth font-bold text-xs uppercase tracking-wide px-4 py-3 disabled:opacity-60"
+            className="w-full bg-gold text-earth font-bold text-xs uppercase tracking-[0.08em] px-4 py-3 disabled:opacity-60"
           >
-            {isSendPreviewLoading ? 'Loading Preview…' : 'Preview Send'}
+            {isSendPreviewLoading ? 'Loading Preview…' : 'Review & Send →'}
           </button>
           {sendPreviewError && <div className="border border-kola/30 bg-kola/10 px-4 py-3 text-xs text-text2">{sendPreviewError}</div>}
           {sendPreviewCard && (
@@ -507,7 +518,7 @@ function ChatQuickActionPanel({
           )}
         </div>
       ) : action === 'swap' ? (
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4 px-5 pb-6">
           <QuickField
             label="From Asset"
             control={(
@@ -518,6 +529,9 @@ function ChatQuickActionPanel({
               </select>
             )}
           />
+          <div className="flex items-center justify-center">
+            <div className="flex h-9 w-9 items-center justify-center border border-border bg-clay text-lg text-gold2">⇅</div>
+          </div>
           <QuickField
             label="To Asset"
             control={(
@@ -540,7 +554,7 @@ function ChatQuickActionPanel({
             )}
           />
           <button onClick={() => { void handlePreviewSwap() }} disabled={isSwapPreviewLoading} className="w-full bg-gold text-earth font-bold text-xs uppercase tracking-wide px-4 py-3 disabled:opacity-60">
-            {isSwapPreviewLoading ? 'Loading Preview…' : 'Preview Swap'}
+            {isSwapPreviewLoading ? 'Loading Preview…' : 'Review Swap →'}
           </button>
           {swapPreviewError && <div className="border border-kola/30 bg-kola/10 px-4 py-3 text-xs text-text2">{swapPreviewError}</div>}
           {swapPreviewCard && (
@@ -554,19 +568,8 @@ function ChatQuickActionPanel({
           )}
         </div>
       ) : (
-        <div className="mt-4 space-y-4">
-          <QuickField
-            label="Asset"
-            control={(
-              <select value={bridgeToken} onChange={(event) => setBridgeToken(event.target.value)} className={quickInputClassName}>
-                {bridgeTokenOptions.map((token) => (
-                  <option key={`${token.symbol}-${token.chain}`} value={token.symbol}>{token.symbol} · {token.chain}</option>
-                ))}
-              </select>
-            )}
-          />
-          <QuickField label="Amount" control={<input value={bridgeAmount} onChange={(event) => setBridgeAmount(event.target.value)} placeholder="10" className={quickInputClassName} />} />
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4 px-5 pb-6">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
             <QuickField
               label="From"
               control={(
@@ -577,6 +580,7 @@ function ChatQuickActionPanel({
                 </select>
               )}
             />
+            <div className="flex h-10 w-10 items-center justify-center border border-border bg-clay text-base text-teal">⇄</div>
             <QuickField
               label="To"
               control={(
@@ -588,8 +592,19 @@ function ChatQuickActionPanel({
               )}
             />
           </div>
+          <QuickField
+            label="Asset"
+            control={(
+              <select value={bridgeToken} onChange={(event) => setBridgeToken(event.target.value)} className={quickInputClassName}>
+                {bridgeTokenOptions.map((token) => (
+                  <option key={`${token.symbol}-${token.chain}`} value={token.symbol}>{token.symbol} · {token.chain}</option>
+                ))}
+              </select>
+            )}
+          />
+          <QuickField label="Amount" control={<input value={bridgeAmount} onChange={(event) => setBridgeAmount(event.target.value)} placeholder="10" className={quickInputClassName} />} />
           <button onClick={() => { void handlePreviewBridge() }} disabled={isBridgePreviewLoading} className="w-full bg-gold text-earth font-bold text-xs uppercase tracking-wide px-4 py-3 disabled:opacity-60">
-            {isBridgePreviewLoading ? 'Loading Preview…' : 'Preview Bridge'}
+            {isBridgePreviewLoading ? 'Loading Preview…' : 'Review Bridge →'}
           </button>
           {bridgePreviewError && <div className="border border-kola/30 bg-kola/10 px-4 py-3 text-xs text-text2">{bridgePreviewError}</div>}
           {!bridgeTokenOptions.length && (
@@ -637,21 +652,24 @@ function PreviewModal({
         className="absolute inset-0 bg-earth/75"
         onClick={terminalState ? onClose : undefined}
       />
-      <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md border border-border bg-soil shadow-2xl xl:bottom-auto xl:left-1/2 xl:top-1/2 xl:max-w-xl xl:-translate-x-1/2 xl:-translate-y-1/2">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md overflow-hidden border border-border bg-soil shadow-2xl xl:bottom-auto xl:left-1/2 xl:top-1/2 xl:max-w-xl xl:-translate-x-1/2 xl:-translate-y-1/2">
+        <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-border2" />
+        <div className="mt-3 h-[3px] bg-[repeating-linear-gradient(90deg,#D4920A_0,#D4920A_8px,#C0392B_8px,#C0392B_16px,#E8A020_16px,#E8A020_24px,#221A0E_24px,#221A0E_28px)]" />
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
-            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted">Action Preview</div>
-            <div className="text-sm text-text2 mt-1">Review the route and confirm when ready.</div>
+            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted">Review</div>
+            <div className="mt-1 font-display text-xl font-black text-cream">{card.title}</div>
+            <div className="text-sm text-text2 mt-1">Confirm the route, fee view, and wallet submission.</div>
           </div>
           <button
             onClick={onClose}
             disabled={!terminalState && card.status !== 'pending'}
-            className="text-xs border border-border px-3 py-1.5 hover:border-border2 transition-colors disabled:opacity-40"
+            className="flex h-8 w-8 items-center justify-center border border-border bg-clay text-xs hover:border-border2 transition-colors disabled:opacity-40"
           >
             Close
           </button>
         </div>
-        <div className="p-4">
+        <div className="p-5">
           <ActionCard
             card={card}
             disabled={disabled}
@@ -667,7 +685,7 @@ function PreviewModal({
 function QuickField({ label, control }: { label: string; control: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted mb-2">{label}</div>
+      <div className="mb-2 text-[10px] font-bold tracking-[0.2em] uppercase text-muted">{label}</div>
       {control}
     </label>
   )

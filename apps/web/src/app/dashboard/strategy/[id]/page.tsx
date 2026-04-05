@@ -224,7 +224,7 @@ export default function StrategyDetailPage() {
       <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 xl:px-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <div className="text-[10px] tracking-[0.2em] uppercase text-muted font-bold">Strategy</div>
+            <div className="text-[11px] tracking-[0.2em] uppercase text-muted font-bold">Strategy</div>
             <h1 className="text-3xl font-display font-black mt-1">{getStrategyTitle(strategyId)}</h1>
           </div>
           <div className="flex items-center gap-3">
@@ -289,7 +289,7 @@ export default function StrategyDetailPage() {
                 <div className="p-5 space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="text-[10px] tracking-[0.2em] uppercase text-muted font-bold">Guardrails</div>
+                      <div className="text-[11px] tracking-[0.2em] uppercase text-muted font-bold">Guardrails</div>
                       <div className="mt-1 text-sm text-muted">
                         These settings are persisted server-side for {walletIdentity.address ? `${walletIdentity.address.slice(0, 6)}…${walletIdentity.address.slice(-4)}` : 'your wallet'}.
                       </div>
@@ -379,7 +379,7 @@ export default function StrategyDetailPage() {
           <div className="space-y-4 xl:sticky xl:top-24">
             <Card>
               <div className="p-5 space-y-4">
-                <div className="text-[10px] tracking-[0.2em] uppercase text-muted font-bold">Actions</div>
+                <div className="text-[11px] tracking-[0.2em] uppercase text-muted font-bold">Actions</div>
                 <div className="flex flex-col gap-3">
                   {(apiStrategyId === 'rebalance' || apiStrategyId === 'yield') && (
                     <Button
@@ -415,7 +415,7 @@ export default function StrategyDetailPage() {
               <Card>
                 <div className="p-5 space-y-4">
                   <div>
-                    <div className="text-[10px] tracking-[0.2em] uppercase text-muted font-bold">
+                    <div className="text-[11px] tracking-[0.2em] uppercase text-muted font-bold">
                       {apiStrategyId === 'yield' ? 'Yield Action' : 'Rebalance Action'}
                     </div>
                     {previewSummary && <div className="mt-2 text-sm text-text2 leading-6">{previewSummary}</div>}
@@ -444,7 +444,7 @@ export default function StrategyDetailPage() {
 
         <Card className="mt-4">
           <div className="p-5">
-            <div className="text-[10px] tracking-[0.2em] uppercase text-muted font-bold">Strategy Activity</div>
+            <div className="text-[11px] tracking-[0.2em] uppercase text-muted font-bold">Strategy Activity</div>
             <div className="mt-1 text-sm text-muted">
               Recent recorded actions and outcomes for this strategy.
             </div>

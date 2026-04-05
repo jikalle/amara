@@ -10,9 +10,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-earth text-cream">
       <DesktopSidebar />
-      <div className="lg:pl-[292px]">
+      <div className="lg:pl-[292px] pb-mobile-nav">
         {children}
       </div>
+      <MobileBottomNav />
     </div>
   )
 }
@@ -35,7 +36,7 @@ function DesktopSidebar() {
           <AnaraLogo size={36} />
           <div>
             <div className="font-display font-black text-xl leading-tight">Amara</div>
-            <div className="mt-1 text-[9px] text-muted tracking-widest uppercase">Wallet Command Center</div>
+            <div className="mt-1 text-[11px] text-muted tracking-widest uppercase">Wallet Command Center</div>
           </div>
         </div>
       </div>
@@ -98,7 +99,7 @@ function SidebarSection({
 
   return (
     <section>
-      <div className="mb-3 px-2 text-[9px] font-bold tracking-[0.2em] text-muted uppercase">{title}</div>
+      <div className="mb-3 px-2 text-[11px] font-bold tracking-[0.2em] text-muted uppercase">{title}</div>
       <div className="space-y-2">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
@@ -126,7 +127,7 @@ function SidebarSection({
               </span>
               <div className="min-w-0">
                 <div className="text-[12px] font-bold uppercase tracking-[0.08em]">{item.label}</div>
-                <div className="text-[10px] text-muted">
+                <div className="text-[11px] text-muted">
                   {pending ? 'Opening…' : active ? 'Current view' : 'Open'}
                 </div>
               </div>
@@ -135,5 +136,78 @@ function SidebarSection({
         })}
       </div>
     </section>
+  )
+}
+
+function MobileBottomNav() {
+  const pathname = usePathname()
+
+  const navItems = [
+    {
+      href: '/dashboard',
+      label: 'Overview',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+          <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+          <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+          <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+        </svg>
+      ),
+    },
+    {
+      href: '/dashboard/chat',
+      label: 'Chat',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 4.5C3 3.67 3.67 3 4.5 3h11C16.33 3 17 3.67 17 4.5v8c0 .83-.67 1.5-1.5 1.5H7l-4 3V4.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+          <circle cx="7" cy="8.5" r="1" fill="currentColor"/>
+          <circle cx="10" cy="8.5" r="1" fill="currentColor"/>
+          <circle cx="13" cy="8.5" r="1" fill="currentColor"/>
+        </svg>
+      ),
+    },
+    {
+      href: '/dashboard/strategy/arb',
+      label: 'Strategies',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="2,14 7,8 11,11 18,4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <polyline points="14,4 18,4 18,8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
+    },
+  ]
+
+  return (
+    <nav
+      className="lg:hidden fixed bottom-0 inset-x-0 z-30 flex border-t border-border bg-soil/97 backdrop-blur"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      {navItems.map((item) => {
+        const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`flex flex-1 flex-col items-center gap-1 py-3 transition-colors ${
+              active ? 'text-gold2' : 'text-muted hover:text-text2'
+            }`}
+          >
+            {/* Kente accent line on active tab */}
+            {active && (
+              <span
+                className="absolute top-0 left-0 right-0 h-[3px]"
+                style={{
+                  background: `repeating-linear-gradient(90deg, ${colors.gold} 0, ${colors.gold} 10px, ${colors.kola} 10px, ${colors.kola} 20px, ${colors.turmeric} 20px, ${colors.turmeric} 30px, ${colors.earth} 30px, ${colors.earth} 36px)`,
+                }}
+              />
+            )}
+            <span className="relative">{item.icon}</span>
+            <span className="text-[10px] font-bold tracking-[0.1em] uppercase">{item.label}</span>
+          </Link>
+        )
+      })}
+    </nav>
   )
 }

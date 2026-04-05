@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -17,7 +19,7 @@
   --text:      #F5E6C8;
   --text2:     #C8AA7A;
   --muted:     #7A5E3A;
-  --font-display: Georgia, "Times New Roman", serif;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-body: "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
 }
@@ -58,4 +60,26 @@ body {
 .anara-mark {
   width: 28px;
   height: 28px;
+}
+
+/* Skeleton loading shimmer */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--clay) 25%, var(--clay2) 50%, var(--clay) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 4px;
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Mobile bottom nav safe area */
+.pb-mobile-nav { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) {
+  .pb-mobile-nav { padding-bottom: 0; }
 }

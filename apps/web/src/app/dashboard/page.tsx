@@ -19,7 +19,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
 export default function DashboardPage() {
   const { ready, authenticated, syncReady, identityToken, user, logout } = useAuth()
   const router  = useRouter()
-  const { fetchBrief, fetchStatus, refreshWallet } = useAgent()
+  const { fetchBrief, fetchStatus, refreshWallet, executeStandaloneAction } = useAgent()
   const {
     address,
     totalUsd,
@@ -41,6 +41,7 @@ export default function DashboardPage() {
   const [chainOpen, setChainOpen]   = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [showFundSheet, setShowFundSheet] = useState(false)
+  const [showQuickSheet, setShowQuickSheet] = useState<'send' | 'receive' | 'swap' | 'bridge' | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [trackedDashboardLoad, setTrackedDashboardLoad] = useState(false)
@@ -113,21 +114,21 @@ export default function DashboardPage() {
             <AnaraLogo size={32} />
             <div>
               <div className="font-display font-black text-lg leading-tight">Amara</div>
-              <div className="text-[9px] text-muted tracking-widest uppercase">Assisted · Base + Ethereum</div>
+              <div className="text-[11px] text-muted tracking-widest uppercase">Assisted · Base + Ethereum</div>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="hidden xl:flex items-center gap-3 border border-border bg-clay/65 px-3 py-2">
               <div className="text-right">
-                <div className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted">Workspace</div>
+                <div className="text-[11px] font-bold tracking-[0.18em] uppercase text-muted">Workspace</div>
                 <div className="text-[12px] text-text2">
                   {emailAddress ? emailAddress.split('@')[0] : 'Wallet operator'}
                 </div>
               </div>
               <div className="h-8 w-px bg-border" />
               <div className="text-left">
-                <div className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted">Active wallet</div>
+                <div className="text-[11px] font-bold tracking-[0.18em] uppercase text-muted">Active wallet</div>
                 <div className="text-[12px] font-mono text-text2">{shortWallet ?? 'No wallet'}</div>
               </div>
             </div>
@@ -135,7 +136,7 @@ export default function DashboardPage() {
             <div className="relative hidden md:block">
               <button
                 onClick={() => setChainOpen(v => !v)}
-                className="flex items-center gap-1.5 bg-clay border border-border px-2.5 py-1.5 text-[9px] font-bold font-mono tracking-wide text-text2 hover:border-border2 transition-colors"
+                className="flex items-center gap-1.5 bg-clay border border-border px-2.5 py-1.5 text-[11px] font-bold font-mono tracking-wide text-text2 hover:border-border2 transition-colors"
               >
                 {chains.slice(0, 3).map((chain) => (
                   <span
@@ -157,7 +158,7 @@ export default function DashboardPage() {
 
             <div className="hidden md:flex items-center gap-1.5 border border-green/25 bg-green/5 px-3 py-1.5">
               <LiveDot />
-              <span className="text-[9px] font-bold text-green tracking-widest uppercase">Agent Ready</span>
+              <span className="text-[11px] font-bold text-green tracking-widest uppercase">Agent Ready</span>
             </div>
 
             <div className="relative">
@@ -243,6 +244,7 @@ export default function DashboardPage() {
               nftCount={nfts.length}
               isRefreshing={isRefreshing || isLoading}
               onOpenFund={() => setShowFundSheet(true)}
+              onOpenSheet={(sheet) => setShowQuickSheet(sheet)}
               onRefresh={async () => {
                 setIsRefreshing(true)
                 try {
@@ -255,7 +257,7 @@ export default function DashboardPage() {
 
             <div className="overflow-hidden border border-border bg-clay/60 shadow-[0_12px_30px_rgba(0,0,0,0.12)]">
               <div className="flex items-center gap-3 px-4 py-2 overflow-hidden">
-                <span className="text-[8px] font-bold text-gold tracking-[0.18em] uppercase flex-shrink-0">Ọrọ àṣà</span>
+                <span className="text-[10px] font-bold text-gold tracking-[0.18em] uppercase flex-shrink-0">Ọrọ àṣà</span>
                 <span className="text-[10px] text-muted italic whitespace-nowrap animate-ticker">
                   "The wealth of a man is not in his pocket, but in the land he cultivates." &nbsp;·&nbsp; "Oní owó ló ní ọrọ." &nbsp;·&nbsp; Brickt — African land. Global capital.
                 </span>
@@ -282,7 +284,7 @@ export default function DashboardPage() {
 
           <aside className="space-y-4 xl:sticky xl:top-24">
             <section>
-              <div className="text-[9px] font-bold tracking-[0.2em] text-muted uppercase mb-3">Strategies</div>
+              <div className="text-[11px] font-bold tracking-[0.2em] text-muted uppercase mb-3">Strategies</div>
               <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide md:mx-0 md:px-0 lg:grid lg:grid-cols-2 lg:overflow-visible lg:gap-3 lg:pb-0">
                 {STRATEGY_CARDS.map(s => (
                   <StrategyCard key={s.id} {...s} />
@@ -291,7 +293,7 @@ export default function DashboardPage() {
             </section>
 
             <section>
-              <div className="text-[9px] font-bold tracking-[0.2em] text-muted uppercase mb-3">Agent Snapshot</div>
+              <div className="text-[11px] font-bold tracking-[0.2em] text-muted uppercase mb-3">Agent Snapshot</div>
               <StatGrid stats={[
                 { label: 'Actions today',  value: String(agentState.actionsToday || 0) },
                 { label: 'Profit today',   value: agentState.profitToday || '$0.00', color: colors.green },
@@ -323,22 +325,45 @@ export default function DashboardPage() {
           />
         </div>
       </main>
-      {/* Agent FAB */}
-      <button
-        onClick={() => { setChatOpen(true); router.push('/dashboard/chat') }}
-        className="fixed bottom-6 right-4 w-14 h-14 rounded-full bg-gold flex items-center justify-center text-2xl z-20 lg:hidden"
+      {/* Agent Chat FAB — hidden on mobile since bottom nav covers chat */}
+      <Link
+        href="/dashboard/chat"
+        onClick={() => setChatOpen(true)}
+        className="hidden lg:flex fixed bottom-6 right-6 w-14 h-14 items-center justify-center bg-gold z-20 hover:bg-gold2 transition-colors"
         style={{ boxShadow: shadows.gold }}
+        aria-label="Open agent chat"
       >
-        🤖
+        {/* Chat bubble SVG */}
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 5.5C4 4.67 4.67 4 5.5 4h13C19.33 4 20 4.67 20 5.5v10c0 .83-.67 1.5-1.5 1.5H8.5L4 20V5.5z" fill="#1A1208" fillOpacity="0.85"/>
+          <circle cx="9" cy="10" r="1.2" fill="#F0B429"/>
+          <circle cx="12" cy="10" r="1.2" fill="#F0B429"/>
+          <circle cx="15" cy="10" r="1.2" fill="#F0B429"/>
+        </svg>
         <span
-          className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-green border-2 border-gold"
+          className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-green border-2 border-gold"
         />
-      </button>
+      </Link>
       {showFundSheet ? (
         <FundWalletSheet
           walletAddress={address}
           identityToken={identityToken}
           onClose={() => setShowFundSheet(false)}
+        />
+      ) : null}
+      {showQuickSheet ? (
+        <QuickActionSheet
+          sheet={showQuickSheet}
+          address={address}
+          tokens={tokens}
+          hasWallet={hasWallet}
+          onClose={() => setShowQuickSheet(null)}
+          onExecuteDirectAction={executeStandaloneAction}
+          onOpenChat={(prompt) => {
+            setShowQuickSheet(null)
+            setChatOpen(true)
+            router.push(`/dashboard/chat?prompt=${encodeURIComponent(prompt)}`)
+          }}
         />
       ) : null}
     </div>
@@ -349,9 +374,67 @@ export default function DashboardPage() {
 
 function LoadingSplash() {
   return (
-    <div className="min-h-screen bg-earth flex flex-col items-center justify-center gap-4">
-      <AnaraLogo size={48} />
-      <div className="text-[10px] font-mono text-muted tracking-widest animate-pulse">LOADING AMARA…</div>
+    <div className="min-h-screen bg-earth flex flex-col">
+      {/* Kente top strip */}
+      <div className="h-1 w-full" style={{
+        background: 'repeating-linear-gradient(90deg, #D4920A 0,#D4920A 10px,#C0392B 10px,#C0392B 20px,#E8A020 20px,#E8A020 30px,#1A1208 30px,#1A1208 36px)',
+      }} />
+      {/* Header skeleton */}
+      <div className="h-[56px] bg-soil/95 border-b border-border flex items-center px-6 gap-3">
+        <div className="skeleton w-8 h-8 rounded-sm" />
+        <div className="skeleton w-24 h-4 rounded" />
+        <div className="flex-1" />
+        <div className="skeleton w-20 h-6 rounded" />
+        <div className="skeleton w-28 h-6 rounded" />
+      </div>
+      {/* Main content skeleton */}
+      <div className="flex-1 mx-auto w-full max-w-7xl px-4 pt-6 md:px-6 xl:px-8">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(340px,0.9fr)]">
+          <div className="space-y-4">
+            {/* Portfolio card skeleton */}
+            <div className="border border-border bg-clay/60 p-4 space-y-4">
+              <div className="skeleton w-32 h-3 rounded" />
+              <div className="skeleton w-56 h-12 rounded" />
+              <div className="flex gap-2">
+                <div className="skeleton w-24 h-6 rounded" />
+                <div className="skeleton w-32 h-4 rounded" />
+              </div>
+              {/* Stats row */}
+              <div className="grid grid-cols-3 border-t border-border pt-3 gap-3">
+                {[1,2,3].map(i => (
+                  <div key={i} className="space-y-2">
+                    <div className="skeleton w-12 h-5 rounded" />
+                    <div className="skeleton w-10 h-3 rounded" />
+                  </div>
+                ))}
+              </div>
+              {/* Action buttons skeleton */}
+              <div className="grid grid-cols-5 gap-2 border-t border-border pt-3">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="skeleton h-12 rounded" />
+                ))}
+              </div>
+            </div>
+            {/* Ticker skeleton */}
+            <div className="skeleton h-8 w-full rounded" />
+          </div>
+          {/* Aside skeleton */}
+          <div className="space-y-4 hidden xl:block">
+            <div className="skeleton w-24 h-3 rounded" />
+            <div className="grid grid-cols-2 gap-3">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="skeleton h-36 rounded" />
+              ))}
+            </div>
+            <div className="skeleton w-28 h-3 rounded mt-4" />
+            <div className="grid grid-cols-2 gap-2">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="skeleton h-14 rounded" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -536,11 +619,11 @@ function QuickActionSheet({
         className="absolute inset-0 bg-earth/70"
         onClick={onClose}
       />
-      <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md border border-border bg-soil shadow-2xl">
+      <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md border border-border bg-soil shadow-2xl max-h-[85dvh] flex flex-col">
         <KenteStrip height={4} />
-        <div className="flex items-start justify-between gap-4 p-4 border-b border-border">
+        <div className="flex items-start justify-between gap-4 p-4 border-b border-border flex-shrink-0">
           <div>
-            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted">Quick Action</div>
+            <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-muted">Quick Action</div>
             <div className="text-xl font-display font-black mt-1" style={{ color: meta.accent }}>{meta.title}</div>
             <div className="text-sm text-muted mt-2 leading-6">{meta.body}</div>
           </div>
@@ -549,6 +632,7 @@ function QuickActionSheet({
           </button>
         </div>
 
+        <div className="overflow-y-auto flex-1">
         {sheet === 'receive' ? (
           <div className="p-4 space-y-4">
             <div className="border border-border bg-clay p-4">
@@ -799,6 +883,7 @@ function QuickActionSheet({
             </div>
           </div>
         )}
+        </div>{/* end scrollable */}
       </div>
     </div>
   )
@@ -1308,11 +1393,25 @@ function MissingWalletState() {
       <div className="max-w-xl mx-auto px-6 py-16">
         <Card kente>
           <div className="p-6">
-            <div className="text-[10px] tracking-[0.2em] uppercase text-muted font-bold mb-3">Wallet Required</div>
-            <h1 className="text-3xl font-display font-black mb-3">Connect or create a wallet to continue.</h1>
-            <p className="text-sm text-muted leading-6">
-              Your account is authenticated, but there is no linked wallet address available for dashboard and agent actions yet.
+            <div className="text-[11px] tracking-[0.2em] uppercase text-muted font-bold mb-3">Wallet Required</div>
+            <h1 className="text-3xl font-display font-black mb-3">No wallet linked yet.</h1>
+            <p className="text-sm text-muted leading-6 mb-6">
+              Your account is authenticated, but there is no linked wallet address. Connect one to start using the dashboard and agent actions.
             </p>
+            <div className="flex flex-col gap-3">
+              <Link
+                href="/onboard"
+                className="flex items-center justify-center gap-2 bg-gold text-earth font-bold text-sm uppercase tracking-wider px-5 py-3 hover:bg-gold2 transition-colors"
+              >
+                <span>→</span> Set up wallet
+              </Link>
+              <Link
+                href="/dashboard/chat"
+                className="flex items-center justify-center gap-2 border border-border text-text2 font-bold text-sm uppercase tracking-wider px-5 py-3 hover:border-border2 transition-colors"
+              >
+                Open agent chat
+              </Link>
+            </div>
           </div>
         </Card>
       </div>
@@ -1383,7 +1482,7 @@ function BriefModal({ brief, onDismiss }: { brief: Brief; onDismiss: () => void 
             ].map(s => (
               <div key={s.lbl}>
                 <div className={`font-display font-bold text-xl ${s.lbl === 'Errors' ? 'text-green' : 'text-gold2'}`}>{s.num}</div>
-                <div className="text-[9px] text-muted tracking-wider uppercase mt-0.5">{s.lbl}</div>
+                <div className="text-[11px] text-muted tracking-wider uppercase mt-0.5">{s.lbl}</div>
               </div>
             ))}
           </div>
@@ -1409,6 +1508,7 @@ function PortfolioHero({
   nftCount,
   isRefreshing,
   onOpenFund,
+  onOpenSheet,
   onRefresh,
 }: {
   walletAddress: string | null
@@ -1420,11 +1520,9 @@ function PortfolioHero({
   nftCount: number
   isRefreshing: boolean
   onOpenFund: () => void
+  onOpenSheet: (sheet: 'send' | 'receive' | 'swap' | 'bridge') => void
   onRefresh: () => void | Promise<void>
 }) {
-  const router = useRouter()
-  const setChatOpen = useAgentStore((state) => state.setChatOpen)
-  const [isNavigating, startNavigation] = useTransition()
   const [pendingAction, setPendingAction] = useState<'fund' | 'send' | 'receive' | 'swap' | 'bridge' | null>(null)
   const chainBreakdown = chains.filter((chain) => parseUsdAmount(chain.totalUsd) > 0)
   const totalValue = Math.max(parseUsdAmount(totalUsd), 0.01)
@@ -1435,7 +1533,7 @@ function PortfolioHero({
     <Card kente className="shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
       <div className="p-4">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <div className="text-[9px] font-bold tracking-[0.2em] text-muted uppercase">Total Portfolio Value</div>
+          <div className="text-[11px] font-bold tracking-[0.2em] text-muted uppercase">Total Portfolio Value</div>
           <button
             onClick={() => { void onRefresh() }}
             disabled={isRefreshing}
@@ -1475,7 +1573,7 @@ function PortfolioHero({
               {'chainId' in s && s.chainId ? <ChainLogo chainId={s.chainId} size={16} /> : null}
               <div className="font-display font-bold text-lg" style={{ color: s.color }}>{s.value}</div>
             </div>
-            <div className="text-[9px] text-muted uppercase tracking-wide mt-0.5">{s.label}</div>
+            <div className="text-[11px] text-muted uppercase tracking-wide mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
@@ -1498,17 +1596,15 @@ function PortfolioHero({
                 window.setTimeout(() => setPendingAction(null), 300)
                 return
               }
-              startNavigation(() => {
-                setChatOpen(true)
-                router.push(`/dashboard/chat?action=${a.sheet}`)
-              })
+              onOpenSheet(a.sheet)
+              window.setTimeout(() => setPendingAction(null), 300)
             }}
-            disabled={a.sheet === 'fund' ? !walletAddress || !identityToken : isNavigating}
+            disabled={a.sheet === 'fund' ? !walletAddress || !identityToken : false}
             className="flex-1 flex flex-col items-center gap-1 py-2.5 bg-clay2 border border-border hover:border-border2 transition-colors disabled:opacity-60"
             style={{ borderTopWidth: 2, borderTopColor: a.color }}
           >
             <span className="text-base">{a.icon}</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-text2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text2">
               {pendingAction === a.sheet ? 'Opening…' : a.label}
             </span>
           </button>
@@ -1705,11 +1801,11 @@ function FundWalletSheet({
         className="absolute inset-0 bg-earth/70"
         onClick={onClose}
       />
-      <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md border border-border bg-soil shadow-2xl">
+      <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md border border-border bg-soil shadow-2xl max-h-[85dvh] flex flex-col">
         <KenteStrip height={4} />
-        <div className="flex items-start justify-between gap-4 border-b border-border p-4">
+        <div className="flex items-start justify-between gap-4 border-b border-border p-4 flex-shrink-0">
           <div>
-            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted">Fund Wallet</div>
+            <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-muted">Fund Wallet</div>
             <div className="mt-1 font-display text-xl font-black text-green">Buy crypto with fiat</div>
             <div className="mt-2 text-sm leading-6 text-muted">
               Use Nigerian bank transfer for local users, or fall back to hosted checkout for card and global flows.
@@ -1719,7 +1815,7 @@ function FundWalletSheet({
             Close
           </button>
         </div>
-        <div className="space-y-4 p-4">
+        <div className="space-y-4 p-4 overflow-y-auto flex-1">
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setMethod('bank_transfer')}
@@ -1905,7 +2001,7 @@ function OnrampHistoryPanel() {
       <div className="border-b border-border px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">Funding Activity</div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted">Funding Activity</div>
             <div className="mt-1 text-sm text-text2">Recent bank-transfer and hosted funding attempts with their current wallet-side status.</div>
           </div>
           <button
@@ -1981,7 +2077,7 @@ function StatusPill({ status }: { status: OnrampAttempt['status'] }) {
       : 'border-teal/30 bg-teal/10 text-teal'
 
   return (
-    <span className={`border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.16em] ${theme}`}>
+    <span className={`border px-2 py-1 text-[11px] font-bold uppercase tracking-[0.16em] ${theme}`}>
       {status === 'awaiting_settlement' ? 'Awaiting' : status}
     </span>
   )
@@ -2008,13 +2104,13 @@ function FundingInstructionRow({
   return (
     <div className="flex items-center justify-between gap-3 border border-green/15 bg-clay/40 px-3 py-2">
       <div className="min-w-0">
-        <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-muted">{label}</div>
+        <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">{label}</div>
         <div className="mt-1 break-all font-mono text-[12px] text-text2">{value}</div>
       </div>
       {copyValue ? (
         <button
           onClick={() => { void handleCopy() }}
-          className="border border-border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-text2"
+          className="border border-border px-2 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-text2"
         >
           {copied ? 'Copied' : 'Copy'}
         </button>
@@ -2049,16 +2145,16 @@ function StrategyCard({ id, icon, name, pnl, sub, accent, status }: typeof STRAT
         <div className="flex justify-between items-center mb-3">
           <span className="text-[18px]">{icon}</span>
           <span
-            className="text-[8px] font-bold px-1.5 py-0.5 border tracking-wider uppercase"
+            className="text-[10px] font-bold px-1.5 py-0.5 border tracking-wider uppercase"
             style={{ color: accent, borderColor: `${accent}40`, background: `${accent}15` }}
           >{status}</span>
         </div>
-        <div className="text-[9px] font-bold text-muted uppercase tracking-wide mb-1.5">{isNavigating ? 'Opening…' : name}</div>
+        <div className="text-[11px] font-bold text-muted uppercase tracking-wide mb-1.5">{isNavigating ? 'Opening…' : name}</div>
         <div
           className="font-display font-bold text-lg leading-none"
           style={{ color: isNeutral ? colors.muted : colors.green }}
         >{pnl}</div>
-        <div className="text-[9px] text-muted mt-1 font-mono">{sub}</div>
+        <div className="text-[11px] text-muted mt-1 font-mono">{sub}</div>
       </div>
     </button>
   )
@@ -2153,7 +2249,7 @@ function AssetsTab({
                 {a.verified && <Badge variant="active">Verified</Badge>}
               </div>
               <div className="text-[10px] text-muted">{a.name}</div>
-              <span className="mt-1 inline-flex items-center gap-1 text-[8px] text-muted bg-clay border border-border px-1.5 py-0.5 font-mono">
+              <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted bg-clay border border-border px-1.5 py-0.5 font-mono">
                 <ChainLogo chainId={a.chainId} size={10} />
                 {a.chain}
               </span>
@@ -2161,7 +2257,7 @@ function AssetsTab({
           </div>
           <div className="text-right">
             <div className="text-[12px] font-bold font-mono text-text2">{a.value}</div>
-            <div className="text-[9px] text-muted font-mono mt-0.5">{a.amount}</div>
+            <div className="text-[11px] text-muted font-mono mt-0.5">{a.amount}</div>
           </div>
         </button>
       ))}
@@ -2250,7 +2346,7 @@ function WalletPanel({
 
   return (
     <section>
-      <div className="text-[9px] font-bold tracking-[0.2em] text-muted uppercase mb-3">Wallet</div>
+      <div className="text-[11px] font-bold tracking-[0.2em] text-muted uppercase mb-3">Wallet</div>
       <Card kente>
         <div className="sticky top-0 z-10 flex bg-clay border-b border-border">
           {(['assets', 'activity', 'nfts'] as const).map(tab => (
@@ -2341,11 +2437,11 @@ function ProfileMenu({
         <div className="mt-2 text-sm font-semibold text-text2 break-all">{emailAddress ?? 'Signed-in user'}</div>
         <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
           <div className="border border-border bg-clay px-3 py-2">
-            <div className="text-[9px] uppercase tracking-[0.16em] text-muted font-bold">Portfolio</div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-muted font-bold">Portfolio</div>
             <div className="mt-1 font-mono text-text2">{totalUsd}</div>
           </div>
           <div className="border border-border bg-clay px-3 py-2">
-            <div className="text-[9px] uppercase tracking-[0.16em] text-muted font-bold">Wallet</div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-muted font-bold">Wallet</div>
             <div className="mt-1 font-mono text-text2">{walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : 'Unavailable'}</div>
           </div>
         </div>
@@ -2523,13 +2619,13 @@ function ChainMenu() {
   ]
   return (
     <div className="absolute top-full right-0 mt-1.5 w-56 bg-soil border border-border z-20 shadow-dark">
-      <div className="text-[9px] font-bold tracking-[0.16em] text-muted uppercase px-3 py-2.5 border-b border-border">Connected Networks</div>
+      <div className="text-[11px] font-bold tracking-[0.16em] text-muted uppercase px-3 py-2.5 border-b border-border">Connected Networks</div>
       {chains.map(c => (
         <div key={c.name} className="flex items-center gap-3 px-3 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-clay transition-colors cursor-pointer">
           <ChainLogo chainId={c.name === 'Ethereum' ? 1 : c.name === 'BNB Chain' ? 56 : 8453} size={16} />
           <div className="flex-1">
             <div className="text-[12px] font-bold">{c.name}</div>
-            <div className="text-[9px] text-muted">{c.sub}</div>
+            <div className="text-[11px] text-muted">{c.sub}</div>
           </div>
           <Badge variant={c.active ? 'active' : 'paused'}>{c.active ? '● ON' : 'OFF'}</Badge>
         </div>

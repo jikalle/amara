@@ -46,61 +46,92 @@ export default function NftDetailPage() {
       <KenteStrip height={4} />
       <header className="sticky top-0 z-20 border-b border-border bg-soil/95 px-4 py-3 backdrop-blur md:px-6 xl:px-8">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
-          <button onClick={() => router.back()} className="text-xs text-muted hover:text-cream">Back</button>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-bold">NFT Detail</div>
-          <Link href="/dashboard" className="text-xs border border-border px-3 py-1.5 hover:border-border2">Close</Link>
+          <button onClick={() => router.back()} className="rounded-full border border-border bg-clay/55 px-3 py-1.5 text-xs text-muted hover:text-cream">Back</button>
+          <div className="text-center">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-bold">NFT Detail</div>
+            <div className="mt-1 text-xs text-text2">{nft.collection} · #{nft.tokenId}</div>
+          </div>
+          <Link href="/dashboard" className="rounded-full text-xs border border-border bg-clay/70 px-3 py-1.5 hover:border-border2">Close</Link>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 xl:px-8">
+      <main className="mx-auto w-full max-w-6xl px-4 py-5 md:px-6 md:py-6 xl:px-8">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-start">
           <Card kente>
-            <div className="p-6">
-              <div className="border border-border bg-clay overflow-hidden">
-                <div className="aspect-square bg-clay border-b border-border flex items-center justify-center overflow-hidden">
+            <div className="overflow-hidden p-4">
+              <div className="overflow-hidden rounded-[1.35rem] border border-border bg-clay">
+                <div className="aspect-square border-b border-border bg-clay flex items-center justify-center overflow-hidden">
                   <NftArtwork nft={nft} />
                 </div>
-                <div className="p-4">
+                <div className="border-b border-border bg-soil px-5 py-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="text-2xl font-display font-black">{nft.name ?? `#${nft.tokenId}`}</div>
-                      <div className="text-sm text-muted mt-1">{nft.collection}</div>
+                      <div className="mt-1 text-sm text-muted">{nft.collection}</div>
                     </div>
                     <Badge variant="chain" color={nft.chain === 'ethereum' ? colors.chains.eth : colors.chains.base}>
                       {nft.chain}
                     </Badge>
                   </div>
+                </div>
 
-                  <div className="mt-6 space-y-3">
-                    <InfoRow label="Token ID" value={nft.tokenId} mono />
-                    <InfoRow label="Collection" value={nft.collection} />
-                    <InfoRow label="Chain" value={nft.chain} />
+                <div className="grid grid-cols-3 border-b border-border">
+                  <MiniNftMetric label="Token ID" value={`#${nft.tokenId}`} />
+                  <MiniNftMetric label="Collection" value={truncate(nft.collection, 14)} />
+                  <MiniNftMetric label="Chain" value={nft.chain} />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 p-4">
+                  <button className="flex flex-col items-center gap-1 border border-border bg-soil px-3 py-3 text-center">
+                    <span className="text-base">⤴</span>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-text2">Share</span>
+                  </button>
+                  <button className="flex flex-col items-center gap-1 border border-border bg-soil px-3 py-3 text-center opacity-70">
+                    <span className="text-base">⛓</span>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-text2">Bridge</span>
+                  </button>
+                  {nft.imageUrl ? (
+                    <a
+                      href={nft.imageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex flex-col items-center gap-1 border border-border bg-soil px-3 py-3 text-center"
+                    >
+                      <span className="text-base">↗</span>
+                      <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-text2">Artwork</span>
+                    </a>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 border border-border bg-soil px-3 py-3 text-center opacity-60">
+                      <span className="text-base">•</span>
+                      <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-text2">Artwork</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mx-4 mb-4 border border-border bg-soil p-4">
+                  <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.14em] text-muted">About</div>
+                  <div className="text-sm leading-6 text-text2">
+                    This NFT detail mirrors the current wallet snapshot. Missing artwork falls back to collection initials so the asset never renders as a blank card.
                   </div>
+                </div>
+
+                <div className="mx-4 mb-5 border border-border bg-soil p-4">
+                  <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.14em] text-muted">Details</div>
+                  <InfoRow label="Token ID" value={nft.tokenId} mono />
+                  <InfoRow label="Collection" value={nft.collection} />
+                  <InfoRow label="Chain" value={nft.chain} />
                 </div>
               </div>
             </div>
           </Card>
 
           <div className="space-y-4 xl:sticky xl:top-24">
-            {nft.imageUrl && (
-              <Card>
-                <div className="p-5">
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-bold mb-3">Artwork</div>
-                  <a
-                    href={nft.imageUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block border border-border px-4 py-3 text-xs font-bold uppercase tracking-wide text-text2 hover:border-border2"
-                  >
-                    Open Artwork
-                  </a>
-                </div>
-              </Card>
-            )}
-
             <Card>
-              <div className="p-5 text-sm text-muted leading-6">
-                NFT detail uses the wallet snapshot currently loaded in the dashboard. Missing artwork falls back to the collection initials instead of a blank frame.
+              <div className="p-5">
+                <div className="mb-3 text-[10px] uppercase tracking-[0.2em] text-muted font-bold">Provenance</div>
+                <div className="text-sm text-muted leading-6">
+                  Collection provenance, listing, and bridge actions are still lightweight in this MVP. The core goal here is clear ownership display and dependable artwork rendering.
+                </div>
               </div>
             </Card>
           </div>
@@ -108,6 +139,19 @@ export default function NftDetailPage() {
       </main>
     </div>
   )
+}
+
+function MiniNftMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-r border-border bg-soil p-4 last:border-r-0">
+      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-muted font-bold">{label}</div>
+      <div className="text-sm font-display font-bold text-text2 break-words">{value}</div>
+    </div>
+  )
+}
+
+function truncate(value: string, limit: number) {
+  return value.length > limit ? `${value.slice(0, limit)}…` : value
 }
 
 function InfoRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {

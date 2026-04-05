@@ -50,6 +50,7 @@ export default function AssetDetailPage() {
       chainId,
     }
   }, [params.address, params.chainId, tokens])
+  const transactions = useWalletStore((state) => state.transactions)
 
   if (!asset) {
     return (
@@ -76,50 +77,127 @@ export default function AssetDetailPage() {
 
   const chain = chainMeta[asset.chainId]
   const explorerUrl = asset.address === 'native' ? null : `${chain?.explorerUrl}/token/${asset.address}`
+  const relatedTransactions = transactions
+    .filter((entry) =>
+      entry.chainId === asset.chainId &&
+      (
+        entry.tokenIn?.symbol === asset.symbol ||
+        entry.tokenOut?.symbol === asset.symbol
+      )
+    )
+    .slice(0, 5)
 
   return (
     <div className="min-h-screen bg-earth text-cream">
       <KenteStrip height={4} />
       <header className="sticky top-0 z-20 border-b border-border bg-soil/95 px-4 py-3 backdrop-blur md:px-6 xl:px-8">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
-          <button onClick={() => router.back()} className="text-xs text-muted hover:text-cream">Back</button>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-bold">Asset Detail</div>
-          <Link href="/dashboard" className="text-xs border border-border px-3 py-1.5 hover:border-border2">Close</Link>
+          <button onClick={() => router.back()} className="rounded-full border border-border bg-clay/55 px-3 py-1.5 text-xs text-muted hover:text-cream">Back</button>
+          <div className="text-center">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-bold">Asset Detail</div>
+            <div className="mt-1 text-xs text-text2">{asset.symbol} · {chain?.name ?? `Chain ${asset.chainId}`}</div>
+          </div>
+          <Link href="/dashboard" className="rounded-full text-xs border border-border bg-clay/70 px-3 py-1.5 hover:border-border2">Close</Link>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 xl:px-8">
+      <main className="mx-auto w-full max-w-6xl px-4 py-5 md:px-6 md:py-6 xl:px-8">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-start">
           <Card kente>
-            <div className="p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <TokenLogo symbol={asset.symbol} name={asset.name} logoUrl={asset.logoUrl} chainId={asset.chainId} size={44} />
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-bold mb-2">Token</div>
-                    <div className="text-3xl font-display font-black">{asset.symbol}</div>
-                    <div className="text-sm text-muted mt-1">{asset.name}</div>
-                  </div>
+            <div className="overflow-hidden rounded-[1.35rem]">
+              <div className="relative border-b border-border bg-soil px-6 py-8 text-center">
+                <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: chain?.color ?? '#627EEA' }} />
+                <div className="flex items-center justify-center gap-3">
+                  <TokenLogo symbol={asset.symbol} name={asset.name} logoUrl={asset.logoUrl} chainId={asset.chainId} size={48} />
+                  {chain ? (
+                    <Badge variant="chain" color={chain.color} className="inline-flex items-center gap-1">
+                      <ChainLogo chainId={asset.chainId} size={12} />
+                      {chain.name}
+                    </Badge>
+                  ) : null}
                 </div>
-                {chain && (
-                  <Badge variant="chain" color={chain.color} className="inline-flex items-center gap-1">
-                    <ChainLogo chainId={asset.chainId} size={12} />
-                    {chain.name}
-                  </Badge>
+                <div className="mt-5 font-display text-[2.2rem] font-black leading-none md:text-[2.6rem]">{asset.balanceFormatted}</div>
+                <div className="mt-2 font-mono text-sm text-text2">{asset.balanceUsd}</div>
+                <div className={`mt-3 inline-flex border px-3 py-1 text-[11px] font-mono font-bold ${asset.change24h.startsWith('-') ? 'border-kola/25 bg-kola/10 text-kola' : 'border-green/25 bg-green/10 text-green'}`}>
+                  {asset.change24h}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 border-b border-border">
+                <MetricCard label="Price" value={asset.priceUsd} />
+                <MetricCard label="Chain" value={chain?.name ?? String(asset.chainId)} />
+                <MetricCard label="Decimals" value={String(asset.decimals)} />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 p-4">
+                <Link
+                  href={`/dashboard/chat?action=send`}
+                  className="flex flex-col items-center gap-1 border border-border bg-soil px-3 py-3 text-center"
+                >
+                  <span className="text-base">↑</span>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-text2">Send</span>
+                </Link>
+                <Link
+                  href={`/dashboard/chat?action=swap`}
+                  className="flex flex-col items-center gap-1 border border-border bg-soil px-3 py-3 text-center"
+                >
+                  <span className="text-base">⇄</span>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-text2">Swap</span>
+                </Link>
+                {explorerUrl ? (
+                  <a
+                    href={explorerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex flex-col items-center gap-1 border border-border bg-soil px-3 py-3 text-center"
+                  >
+                    <span className="text-base">↗</span>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-text2">Explorer</span>
+                  </a>
+                ) : (
+                  <div className="flex flex-col items-center gap-1 border border-border bg-soil px-3 py-3 text-center opacity-60">
+                    <span className="text-base">•</span>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-text2">Native</span>
+                  </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mt-6">
-                <MetricCard label="Balance" value={asset.balanceFormatted} />
-                <MetricCard label="Value" value={asset.balanceUsd} />
-                <MetricCard label="Price" value={asset.priceUsd} />
-                <MetricCard label="24h Change" value={asset.change24h} />
+              <div className="mx-4 border border-border bg-soil p-4">
+                <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.14em] text-muted">About</div>
+                <div className="text-sm leading-6 text-text2">
+                  {asset.name} is currently loaded from the wallet snapshot. Refresh the dashboard if you need a fresher balance or pricing view.
+                </div>
+                <div className="mt-3 border-t border-border pt-3">
+                  <InfoRow label="Contract" value={asset.address === 'native' ? 'Native asset' : asset.address} mono />
+                  <InfoRow label="Chain ID" value={String(asset.chainId)} />
+                </div>
               </div>
 
-              <div className="mt-6 space-y-3">
-                <InfoRow label="Contract" value={asset.address === 'native' ? 'Native asset' : asset.address} mono />
-                <InfoRow label="Decimals" value={String(asset.decimals)} />
-                <InfoRow label="Chain ID" value={String(asset.chainId)} />
+              <div className="px-4 pb-5 pt-4">
+                <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-muted">Transaction History</div>
+                <div className="overflow-hidden border border-border bg-soil">
+                  {relatedTransactions.length ? relatedTransactions.map((entry) => (
+                    <Link
+                      key={entry.hash}
+                      href={`/dashboard/activity/${entry.chainId}/${encodeURIComponent(entry.hash)}`}
+                      className="flex items-center gap-3 border-b border-border/50 px-4 py-3 last:border-b-0"
+                    >
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${entry.type === 'receive' ? 'border-green/25 bg-green/10 text-green' : 'border-kola/25 bg-kola/10 text-kola'}`}>
+                        {entry.type === 'receive' ? '↓' : '↑'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-cream">{entry.type === 'receive' ? 'Received' : 'Sent'}</div>
+                        <div className="mt-1 font-mono text-[10px] text-muted">{entry.hash.slice(0, 10)}…{entry.hash.slice(-4)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`font-mono text-xs font-bold ${entry.type === 'receive' ? 'text-green' : 'text-kola'}`}>{entry.valueFormatted}</div>
+                        <div className="mt-1 font-mono text-[10px] text-muted">{formatShortTime(entry.timestamp)}</div>
+                      </div>
+                    </Link>
+                  )) : (
+                    <div className="px-4 py-5 text-sm text-muted">No recent transaction history for this asset is available yet.</div>
+                  )}
+                </div>
               </div>
             </div>
           </Card>
@@ -127,37 +205,12 @@ export default function AssetDetailPage() {
           <div className="space-y-4 xl:sticky xl:top-24">
             <Card>
               <div className="p-5">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-bold mb-3">Quick Actions</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-bold mb-3">Token Context</div>
                 <div className="flex flex-col gap-2">
-                  <Link
-                    href={`/dashboard/chat?prompt=${encodeURIComponent(`Send ${asset.symbol} to 0x1111111111111111111111111111111111111111 on ${chain?.name ?? 'Base'}`)}`}
-                    className="bg-kola/10 border border-kola/30 px-4 py-3 text-xs font-bold uppercase tracking-wide text-kola hover:bg-kola/20"
-                  >
-                    Send With Chat
-                  </Link>
-                  <Link
-                    href={`/dashboard/chat?prompt=${encodeURIComponent(`Swap ${asset.symbol} to USDC on ${chain?.name ?? 'Base'}`)}`}
-                    className="bg-gold/10 border border-gold/30 px-4 py-3 text-xs font-bold uppercase tracking-wide text-gold2 hover:bg-gold/20"
-                  >
-                    Swap With Chat
-                  </Link>
-                  {explorerUrl && (
-                    <a
-                      href={explorerUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="border border-border px-4 py-3 text-xs font-bold uppercase tracking-wide text-text2 hover:border-border2"
-                    >
-                      View On Explorer
-                    </a>
-                  )}
+                  <InfoRow label="Symbol" value={asset.symbol} />
+                  <InfoRow label="Name" value={asset.name} />
+                  <InfoRow label="Value" value={asset.balanceUsd} />
                 </div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="p-5 text-sm text-muted leading-6">
-                Asset detail is wallet-state driven. Refresh the dashboard if balances or pricing changed recently and you want the latest synced view.
               </div>
             </Card>
           </div>
@@ -173,9 +226,9 @@ function normalizeAssetAddress(address: `0x${string}` | 'native') {
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-border bg-clay p-4">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-bold mb-2">{label}</div>
-      <div className="text-lg font-display font-bold text-text2">{value}</div>
+    <div className="border-r border-border bg-soil p-4 last:border-r-0">
+      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-muted font-bold">{label}</div>
+      <div className="text-lg font-display font-bold text-text2 break-words">{value}</div>
     </div>
   )
 }
@@ -189,4 +242,9 @@ function InfoRow({ label, value, mono = false }: { label: string; value: string;
       </span>
     </div>
   )
+}
+
+function formatShortTime(timestamp?: number) {
+  if (!timestamp) return 'Pending'
+  return new Date(timestamp).toLocaleString([], { month: 'short', day: 'numeric' })
 }

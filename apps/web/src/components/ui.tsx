@@ -134,7 +134,7 @@ export function Badge({ variant = 'default', children, color, className }: Badge
   return (
     <span
       className={cn(
-        'inline-flex items-center border px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider',
+        'inline-flex items-center border px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider',
         badgeVariants[variant],
         className,
       )}
@@ -333,7 +333,7 @@ export function StatGrid({ stats }: { stats: { label: string; value: string; col
     <div className="grid border border-border" style={{ gridTemplateColumns: `repeat(${Math.min(stats.length, 4)}, 1fr)` }}>
       {stats.map((stat, index) => (
         <div key={stat.label} className={cn('bg-soil p-3', index < stats.length - 1 && 'border-r border-border')}>
-          <div className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted">{stat.label}</div>
+          <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted">{stat.label}</div>
           <div className="font-mono text-[13px] font-bold" style={{ color: stat.color ?? colors.text2 }}>
             {stat.value}
           </div>
@@ -429,14 +429,14 @@ export function ActionCard({
         <div className="flex items-center gap-2 px-3 py-3 text-gold2">
           <span>↗</span>
           <span className="text-[11px] font-bold">Submitted, awaiting confirmation</span>
-          {card.txHash && <span className="ml-auto text-[9px] font-mono text-muted">{card.txHash.slice(0, 10)}…{card.txHash.slice(-4)}</span>}
+          {card.txHash && <span className="ml-auto text-[11px] font-mono text-muted">{card.txHash.slice(0, 10)}…{card.txHash.slice(-4)}</span>}
         </div>
       )}
       {card.status === 'confirmed' && (
         <div className="flex items-center gap-2 px-3 py-3 text-green">
           <span>✓</span>
           <span className="text-[11px] font-bold">Confirmed</span>
-          {card.txHash && <span className="ml-auto text-[9px] font-mono text-muted">{card.txHash.slice(0, 10)}…{card.txHash.slice(-4)}</span>}
+          {card.txHash && <span className="ml-auto text-[11px] font-mono text-muted">{card.txHash.slice(0, 10)}…{card.txHash.slice(-4)}</span>}
         </div>
       )}
       {card.status === 'cancelled' && <div className="px-3 py-3 text-[11px] text-muted">✕ Cancelled</div>}
