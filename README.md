@@ -1,18 +1,19 @@
 # Amara Wallet
 
-> Assistive web-first wallet for Base and Ethereum.
+> Assistive web-first wallet for Base, Ethereum, and BNB Chain.
 > The agent prepares actions, you confirm execution.
 
 ---
 
 ## What is Amara?
 
-Amara is an AI-assisted crypto wallet focused on Base and Ethereum. The agent helps the user:
+Amara is an AI-assisted crypto wallet focused on Base, Ethereum, and BNB Chain. The agent helps the user:
 
 - view real balances, assets, NFTs, and wallet activity
 - ask for swap, send, and bridge previews in natural language
 - confirm and execute real wallet-backed transactions
 - review status updates and recent execution history
+- fund the wallet through hosted checkout or a Nigeria-first bank-transfer path
 
 The current MVP is explicitly confirmation-based. It is not unattended autonomous execution.
 
@@ -136,7 +137,7 @@ forge test -vvv
 
 ### Current MVP Scope
 - [x] Web-first beta
-- [x] Base + Ethereum only
+- [x] Base + Ethereum + BNB Chain
 - [x] Confirmation required before execution
 - [x] Assistive agent behavior, not unattended autonomy
 
@@ -146,17 +147,19 @@ forge test -vvv
 - [ ] Browser extension
 - [ ] Mobile parity
 - [ ] Brickt integration
-- [ ] Fiat on-ramp
 - [ ] Broad multichain expansion
 
 ### Launch Work Remaining
-- [ ] Analytics funnel instrumentation
-- [ ] Production error monitoring
-- [ ] Beta gating / feature flags for risky flows
 - [ ] Final staging regression pass
-- [ ] Known limitations and support runbook
+- [ ] Production deployment and rollback rehearsal
+- [ ] cNGN merchant approval / KYB completion
+- [ ] final funding-rail release posture decision
 
-See [launch_execution_board.md](/home/mafita/amara/launch_execution_board.md) for the active Weeks 10-12 execution plan.
+See:
+- [launch_execution_board.md](/home/mafita/amara/launch_execution_board.md)
+- [deployment_runbook.md](/home/mafita/amara/deployment_runbook.md)
+- [staging_regression_checklist.md](/home/mafita/amara/staging_regression_checklist.md)
+- [release_decision_sheet.md](/home/mafita/amara/release_decision_sheet.md)
 
 ---
 
