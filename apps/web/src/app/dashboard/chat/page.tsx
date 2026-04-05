@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getSwapQuote } from '@anara/chain'
@@ -17,6 +17,14 @@ const SUGGESTIONS = [
 ]
 
 export default function DashboardChatPage() {
+  return (
+    <Suspense fallback={<ChatPageFallback />}>
+      <DashboardChatPageInner />
+    </Suspense>
+  )
+}
+
+function DashboardChatPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { messages, isThinking, sendMessage, executeAction, executeStandaloneAction, cancelAction } = useAgent()
@@ -238,6 +246,30 @@ export default function DashboardChatPage() {
             </div>
           )}
         </aside>
+      </main>
+    </div>
+  )
+}
+
+function ChatPageFallback() {
+  return (
+    <div className="min-h-screen bg-earth text-cream flex flex-col">
+      <header className="sticky top-0 z-20 border-b border-border bg-soil/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6 xl:px-8">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-green font-bold">Agent Chat</div>
+            <div className="text-sm text-muted">Loading conversation…</div>
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:gap-8">
+        <section className="min-w-0 flex-1 max-xl:mx-auto max-xl:w-full max-xl:max-w-2xl">
+          <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-border bg-soil shadow-[0_18px_36px_rgba(0,0,0,0.14)]">
+            <div className="flex min-h-[60vh] items-center justify-center px-4 py-8 text-sm text-muted">
+              Preparing the chat workspace…
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   )
