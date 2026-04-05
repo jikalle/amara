@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { requireAuth, type AuthenticatedRequest } from '../middleware/auth'
-import { getAgentSettings, upsertUser } from '../db/client'
-import { isAuthorizationError, resolveAuthorizedWalletAddress } from '../lib/authz'
+import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js'
+import { getAgentSettings, upsertUser } from '../db/client.js'
+import { isAuthorizationError, resolveAuthorizedWalletAddress } from '../lib/authz.js'
 
 export const authRouter = Router()
 

@@ -1,6 +1,6 @@
 import { getSwapQuote } from '@anara/chain'
 import type { AgentActionCard } from '@anara/types'
-import { buildPortfolio } from './portfolio'
+import { buildPortfolio } from './portfolio.js'
 
 type YieldStrategyView = {
   status: 'active' | 'watching'

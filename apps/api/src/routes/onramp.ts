@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { getUserByPrivyId } from '../db/client'
-import { resolveAuthorizedWalletAddress, isAuthorizationError } from '../lib/authz'
-import { requireAuth, type AuthenticatedRequest } from '../middleware/auth'
-import { logErrorEvent, logEvent, logWarn } from '../middleware/logger'
+import { getUserByPrivyId } from '../db/client.js'
+import { resolveAuthorizedWalletAddress, isAuthorizationError } from '../lib/authz.js'
+import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js'
+import { logErrorEvent, logEvent, logWarn } from '../middleware/logger.js'
 
 const SUPPORTED_CHAIN_IDS = [1, 56, 8453] as const
 

@@ -7,10 +7,10 @@ import {
   setStrategyEnabled,
   updateAgentSettings,
   upsertUser,
-} from '../db/client'
-import { requireAuth, type AuthenticatedRequest } from '../middleware/auth'
-import { buildRebalancePreview, buildRebalanceStrategyView } from '../services/strategy-rebalance'
-import { buildYieldPreview, buildYieldStrategyView } from '../services/strategy-yield'
+} from '../db/client.js'
+import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js'
+import { buildRebalancePreview, buildRebalanceStrategyView } from '../services/strategy-rebalance.js'
+import { buildYieldPreview, buildYieldStrategyView } from '../services/strategy-yield.js'
 
 export const strategyRouter = Router()
 

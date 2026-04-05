@@ -1,13 +1,13 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { erc20Abi, getAddress, isAddress, zeroAddress } from 'viem'
-import { getAgentSettings, getUserByPrivyId, getUserByWalletAddress, logExecution, saveTransaction, updateTransactionStatus, upsertUser } from '../db/client'
+import { getAgentSettings, getUserByPrivyId, getUserByWalletAddress, logExecution, saveTransaction, updateTransactionStatus, upsertUser } from '../db/client.js'
 import { getPublicClient } from '@anara/chain'
-import { requireAuth, type AuthenticatedRequest } from '../middleware/auth'
-import { isAuthorizationError, resolveAuthorizedWalletAddress } from '../lib/authz'
-import { evaluateFeatureAccess } from '../lib/feature-flags'
-import { evaluateGuardrails } from '../lib/guardrails'
-import { logErrorEvent, logEvent, logWarn } from '../middleware/logger'
+import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js'
+import { isAuthorizationError, resolveAuthorizedWalletAddress } from '../lib/authz.js'
+import { evaluateFeatureAccess } from '../lib/feature-flags.js'
+import { evaluateGuardrails } from '../lib/guardrails.js'
+import { logErrorEvent, logEvent, logWarn } from '../middleware/logger.js'
 
 export const txRouter = Router()
 

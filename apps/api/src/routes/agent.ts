@@ -1,11 +1,11 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { runAgent } from '@anara/agent'
-import { getRecentExecutions, getUserByPrivyId, getUserByWalletAddress, upsertUser } from '../db/client'
-import { requireAuth, type AuthenticatedRequest } from '../middleware/auth'
-import { isAuthorizationError, resolveAuthorizedWalletAddress } from '../lib/authz'
-import { evaluateFeatureAccess, getFeatureFlags } from '../lib/feature-flags'
-import { logErrorEvent, logEvent, logWarn } from '../middleware/logger'
+import { getRecentExecutions, getUserByPrivyId, getUserByWalletAddress, upsertUser } from '../db/client.js'
+import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js'
+import { isAuthorizationError, resolveAuthorizedWalletAddress } from '../lib/authz.js'
+import { evaluateFeatureAccess, getFeatureFlags } from '../lib/feature-flags.js'
+import { logErrorEvent, logEvent, logWarn } from '../middleware/logger.js'
 
 export const agentRouter = Router()
 

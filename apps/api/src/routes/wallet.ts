@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { buildPortfolio } from '../services/portfolio'
-import { getRecentTransactionsWithDebug } from '../services/transactions'
-import { getStoredTransactions, getUserByWalletAddress, savePortfolioSnapshot, saveTransaction } from '../db/client'
+import { buildPortfolio } from '../services/portfolio.js'
+import { getRecentTransactionsWithDebug } from '../services/transactions.js'
+import { getStoredTransactions, getUserByWalletAddress, savePortfolioSnapshot, saveTransaction } from '../db/client.js'
 import type { Transaction } from '@anara/types'
 
 export const walletRouter = Router()

@@ -1,10 +1,10 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { getUserByPrivyId } from '../db/client'
-import { resolveAuthorizedWalletAddress, isAuthorizationError } from '../lib/authz'
-import { createCngnVirtualAccount, getCngnTransactions } from '../lib/cngn'
-import { requireAuth, type AuthenticatedRequest } from '../middleware/auth'
-import { logErrorEvent, logEvent, logWarn } from '../middleware/logger'
+import { getUserByPrivyId } from '../db/client.js'
+import { resolveAuthorizedWalletAddress, isAuthorizationError } from '../lib/authz.js'
+import { createCngnVirtualAccount, getCngnTransactions } from '../lib/cngn.js'
+import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js'
+import { logErrorEvent, logEvent, logWarn } from '../middleware/logger.js'
 
 const CreateVirtualAccountSchema = z.object({
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),

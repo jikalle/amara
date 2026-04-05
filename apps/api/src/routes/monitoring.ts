@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { logErrorEvent, logWarn } from '../middleware/logger'
+import { logErrorEvent, logWarn } from '../middleware/logger.js'
 
 const ClientErrorSchema = z.object({
   type: z.enum(['window_error', 'unhandled_rejection']),
