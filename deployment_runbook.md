@@ -54,6 +54,7 @@ Recommended domains:
 ### API
 
 - `PORT`
+- `CORS_ALLOWED_ORIGINS`
 - `ANTHROPIC_API_KEY`
 - `ALCHEMY_API_KEY`
 - `DATABASE_URL`
@@ -102,10 +103,11 @@ Before every release:
 
 1. Deploy API to staging
 2. Verify `/health`
-3. Verify `/api/agent/status`
-4. Deploy web to staging
-5. Log in with a staging user
-6. Run the staging regression checklist
+3. Verify `/ready`
+4. Verify `/api/agent/status`
+5. Deploy web to staging
+6. Log in with a staging user
+7. Run the staging regression checklist
 
 Minimum staging smoke checks:
 - login works
@@ -123,9 +125,10 @@ Minimum staging smoke checks:
 3. Deploy API to production
 4. Check API startup logs
 5. Verify `/health`
-6. Deploy web to production
-7. Run production smoke check
-8. Open the first beta cohort only after smoke checks pass
+6. Verify `/ready`
+7. Deploy web to production
+8. Run production smoke check
+9. Open the first beta cohort only after smoke checks pass
 
 Minimum production smoke checks:
 - login

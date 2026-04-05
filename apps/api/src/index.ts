@@ -1,4 +1,4 @@
-import './env'
+import { getAllowedOrigins, getRuntimeSummary } from './env'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -12,17 +12,15 @@ import { monitoringRouter } from './routes/monitoring'
 import { onrampRouter } from './routes/onramp'
 import { cngnRouter } from './routes/cngn'
 import { requestLogger, errorHandler, notFound } from './middleware/logger'
+import { getDbHealth } from './db/client'
 
 export function createApp() {
   const app = express()
+  const allowedOrigins = getAllowedOrigins()
 
   app.use(helmet())
   app.use(cors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'exp://localhost:8081',
-    ],
+    origin: allowedOrigins,
     credentials: true,
   }))
 
@@ -67,6 +65,39 @@ export function createApp() {
     })
   })
 
+  app.get('/ready', async (_req, res) => {
+    const runtime = getRuntimeSummary()
+    const db = await getDbHealth()
+    const checks = {
+      database: db,
+      providers: {
+        anthropic: runtime.providers.anthropic,
+        alchemy: runtime.providers.alchemy,
+        lifi: runtime.providers.lifi,
+      },
+      funding: {
+        transak: runtime.providers.transak,
+        cngn: runtime.providers.cngn,
+      },
+    }
+
+    const ready =
+      checks.database.ok &&
+      checks.providers.alchemy &&
+      checks.providers.lifi
+
+    res.status(ready ? 200 : 503).json({
+      status: ready ? 'ready' : 'degraded',
+      timestamp: new Date().toISOString(),
+      runtime: {
+        nodeEnv: runtime.nodeEnv,
+        allowedOrigins: runtime.allowedOrigins,
+        featureFlags: runtime.featureFlags,
+      },
+      checks,
+    })
+  })
+
   app.use('/api/auth', authRouter)
   app.use('/api/agent', agentRouter)
   app.use('/api/wallet', walletRouter)
@@ -87,6 +118,7 @@ const PORT = process.env.PORT ?? 4000
 
 if (process.env.VITEST !== 'true' && process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
+    const runtime = getRuntimeSummary()
     console.log(`
 ╔═══════════════════════════════════╗
 ║   Amara API  ·  port ${PORT}         ║
@@ -94,6 +126,12 @@ if (process.env.VITEST !== 'true' && process.env.NODE_ENV !== 'test') {
 ║   Chains: Base + 9 more          ║
 ╚═══════════════════════════════════╝
   `)
+    console.log('[runtime]', JSON.stringify({
+      env: runtime.nodeEnv,
+      origins: runtime.allowedOrigins,
+      features: runtime.featureFlags,
+      providers: runtime.providers,
+    }))
   })
 }
 

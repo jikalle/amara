@@ -96,6 +96,31 @@ export function resetInMemoryDb() {
   hasLoggedDbFallback = false
 }
 
+export async function getDbHealth() {
+  if (!pool) {
+    return {
+      ok: false,
+      mode: 'memory_fallback' as const,
+      message: 'DATABASE_URL is missing or unusable.',
+    }
+  }
+
+  try {
+    await pool.query('select 1')
+    return {
+      ok: true,
+      mode: 'postgres' as const,
+      message: 'Database reachable.',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      mode: 'memory_fallback' as const,
+      message: error instanceof Error ? error.message : 'Database unavailable.',
+    }
+  }
+}
+
 function randomId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`
 }

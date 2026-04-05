@@ -12,6 +12,7 @@ Use this as the execution checklist that sits beside [deployment_runbook.md](/ho
 - [ ] Staging API URL is chosen
 - [ ] `NEXT_PUBLIC_API_URL` points to the staging API
 - [ ] CORS allows the staging web origin
+- [ ] `CORS_ALLOWED_ORIGINS` includes the staging web origin
 
 ### Staging Web Environment
 
@@ -56,6 +57,7 @@ Nigeria-first:
 - [ ] Postgres is reachable from the staging API
 - [ ] API starts without DB fallback warnings
 - [ ] API `/health` returns `200`
+- [ ] API `/ready` returns `200`
 - [ ] API `/api/agent/status` returns `200`
 
 ## Part 2: Staging Release Validation
@@ -87,6 +89,7 @@ Nigeria-first:
 - [ ] Production API URL is chosen
 - [ ] `NEXT_PUBLIC_API_URL` points to production API
 - [ ] Production CORS allows the production web origin
+- [ ] `CORS_ALLOWED_ORIGINS` includes the production web origin
 
 ### Production Web Environment
 
@@ -136,6 +139,7 @@ Nigeria-first:
 - [ ] Deploy API to production
 - [ ] Check API startup logs
 - [ ] Verify `/health`
+- [ ] Verify `/ready`
 - [ ] Deploy web to production
 - [ ] Run a production smoke pass
 
