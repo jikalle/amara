@@ -9,6 +9,7 @@ import {
   upsertUser,
 } from '../db/client.js'
 import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js'
+import { buildArbPreview, buildArbStrategyView } from '../services/strategy-arb.js'
 import { buildRebalancePreview, buildRebalanceStrategyView } from '../services/strategy-rebalance.js'
 import { buildYieldPreview, buildYieldStrategyView } from '../services/strategy-yield.js'
 
@@ -34,8 +35,10 @@ const strategyFieldMap = {
 
 const strategyDetailCopy: Record<string, Record<string, string | number | boolean>> = {
   arb: {
-    mode: 'Cross-venue spread capture',
-    markets: 'Base + Ethereum',
+    mode: 'Same-chain opportunity monitor (beta)',
+    markets: 'Base + Ethereum + BNB Chain',
+    model: 'Quote-implied price vs external reference price',
+    riskNote: 'Estimated net only. Profit is not guaranteed.',
     approvalsRequired: true,
   },
   yield: {
@@ -71,6 +74,9 @@ strategyRouter.get('/', async (req: AuthenticatedRequest, res) => {
   try {
     const user = await getOrCreateAuthenticatedUser(req)
     const settings = await getAgentSettings(user.id)
+    const arbView = user.wallet_address
+      ? await buildArbStrategyView(user.wallet_address)
+      : null
     const rebalanceView = user.wallet_address
       ? await buildRebalanceStrategyView(user.wallet_address)
       : null
@@ -84,13 +90,17 @@ strategyRouter.get('/', async (req: AuthenticatedRequest, res) => {
         name: strategy.name,
         status: settings[strategyFieldMap[strategy.id]] === false
           ? 'paused'
+          : strategy.id === 'arb' && arbView
+            ? arbView.status
           : strategy.id === 'rebalance' && rebalanceView
             ? rebalanceView.status
-            : strategy.id === 'yield' && yieldView
+          : strategy.id === 'yield' && yieldView
               ? yieldView.status
             : strategy.defaultStatus,
         pnl: strategy.id === 'rebalance' && rebalanceView
           ? rebalanceView.pnl
+          : strategy.id === 'arb' && arbView
+            ? arbView.pnl
           : strategy.id === 'yield' && yieldView
             ? yieldView.pnl
             : strategy.pnl,
@@ -117,6 +127,9 @@ strategyRouter.get('/:id', async (req: AuthenticatedRequest, res) => {
 
     const user = await getOrCreateAuthenticatedUser(req)
     const settings = await getAgentSettings(user.id)
+    const arbView = strategy.id === 'arb' && user.wallet_address
+      ? await buildArbStrategyView(user.wallet_address)
+      : null
     const rebalanceView = strategy.id === 'rebalance' && user.wallet_address
       ? await buildRebalanceStrategyView(user.wallet_address)
       : null
@@ -126,16 +139,16 @@ strategyRouter.get('/:id', async (req: AuthenticatedRequest, res) => {
     const history = await getStrategyExecutions(user.id, strategy.id, 10)
     const status = settings[strategyFieldMap[strategy.id]] === false
       ? 'paused'
-      : rebalanceView?.status ?? yieldView?.status ?? strategy.defaultStatus
+      : arbView?.status ?? rebalanceView?.status ?? yieldView?.status ?? strategy.defaultStatus
 
     res.json({
       id: strategy.id,
       name: strategy.name,
       status,
       type: strategy.type,
-      pnl: rebalanceView?.pnl ?? yieldView?.pnl ?? strategy.pnl,
+      pnl: arbView?.pnl ?? rebalanceView?.pnl ?? yieldView?.pnl ?? strategy.pnl,
       settings: serializeSettings(settings),
-      details: rebalanceView?.details ?? yieldView?.details ?? strategyDetailCopy[strategy.id] ?? {},
+      details: arbView?.details ?? rebalanceView?.details ?? yieldView?.details ?? strategyDetailCopy[strategy.id] ?? {},
       history: history.map((entry) => ({
         id: entry.id,
         status: entry.status,
@@ -208,8 +221,8 @@ strategyRouter.post('/settings', async (req: AuthenticatedRequest, res) => {
 strategyRouter.post('/:id/preview', async (req: AuthenticatedRequest, res) => {
   try {
     const strategyId = normalizeStrategyId(req.params.id)
-    if (strategyId !== 'rebalance' && strategyId !== 'yield') {
-      return res.status(400).json({ error: 'Preview generation is only implemented for rebalance and yield right now.' })
+    if (strategyId !== 'rebalance' && strategyId !== 'yield' && strategyId !== 'arb') {
+      return res.status(400).json({ error: 'Preview generation is only implemented for arbitrage, rebalance, and yield right now.' })
     }
 
     const user = await getOrCreateAuthenticatedUser(req)
@@ -219,7 +232,9 @@ strategyRouter.post('/:id/preview', async (req: AuthenticatedRequest, res) => {
 
     const preview = strategyId === 'rebalance'
       ? await buildRebalancePreview(user.wallet_address)
-      : await buildYieldPreview(user.wallet_address)
+      : strategyId === 'yield'
+        ? await buildYieldPreview(user.wallet_address)
+        : await buildArbPreview(user.wallet_address)
     return res.json(preview)
   } catch (err) {
     console.error('[strategy preview]', err)

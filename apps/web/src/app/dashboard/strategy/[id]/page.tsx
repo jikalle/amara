@@ -245,9 +245,12 @@ export default function StrategyDetailPage() {
             <Card kente>
               <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <Badge variant={status === 'active' ? 'active' : status === 'paused' ? 'paused' : 'watching'}>
-                    {status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {apiStrategyId === 'arb' && <Badge variant="watching">beta</Badge>}
+                    <Badge variant={status === 'active' ? 'active' : status === 'paused' ? 'paused' : 'watching'}>
+                      {status}
+                    </Badge>
+                  </div>
                   <div className="text-sm text-muted">ID: {apiStrategyId}</div>
                 </div>
 
@@ -266,7 +269,7 @@ export default function StrategyDetailPage() {
                       <span className="font-mono text-text2">{strategy.type}</span>
                     </div>
                     <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                      <span className="text-muted">{strategy.type === 'rebalance' || strategy.type === 'yield' ? 'Signal' : 'Performance'}</span>
+                      <span className="text-muted">{strategy.type === 'rebalance' || strategy.type === 'yield' || strategy.type === 'arb' ? 'Signal' : 'Performance'}</span>
                       <span className="font-mono text-text2">{strategy.pnl}</span>
                     </div>
                     {Object.entries(strategy.details ?? {}).map(([key, value]) => (
@@ -380,15 +383,24 @@ export default function StrategyDetailPage() {
             <Card>
               <div className="p-5 space-y-4">
                 <div className="text-[11px] tracking-[0.2em] uppercase text-muted font-bold">Actions</div>
+                {apiStrategyId === 'arb' && (
+                  <div className="border border-kola/25 bg-kola/8 px-3 py-3 text-xs leading-5 text-text2">
+                    Arbitrage is currently a monitored beta flow. Amara estimates quoted edge after fees, but realized profit is not guaranteed and every trade still requires confirmation.
+                  </div>
+                )}
                 <div className="flex flex-col gap-3">
-                  {(apiStrategyId === 'rebalance' || apiStrategyId === 'yield') && (
+                  {(apiStrategyId === 'rebalance' || apiStrategyId === 'yield' || apiStrategyId === 'arb') && (
                     <Button
                       variant="primary"
                       loading={isPreviewLoading}
                       disabled={isPreviewLoading || isSubmitting || !walletIdentity.address || isLoading || isAwaitingSession}
                       onClick={generatePreview}
                     >
-                      {apiStrategyId === 'yield' ? 'Generate Yield Preview' : 'Generate Rebalance Preview'}
+                      {apiStrategyId === 'yield'
+                        ? 'Generate Yield Preview'
+                        : apiStrategyId === 'arb'
+                          ? 'Scan Arbitrage Preview'
+                          : 'Generate Rebalance Preview'}
                     </Button>
                   )}
                   <Button
@@ -411,12 +423,16 @@ export default function StrategyDetailPage() {
               </div>
             </Card>
 
-            {(apiStrategyId === 'rebalance' || apiStrategyId === 'yield') && (previewSummary || previewReason || previewCard) && (
+            {(apiStrategyId === 'rebalance' || apiStrategyId === 'yield' || apiStrategyId === 'arb') && (previewSummary || previewReason || previewCard) && (
               <Card>
                 <div className="p-5 space-y-4">
                   <div>
                     <div className="text-[11px] tracking-[0.2em] uppercase text-muted font-bold">
-                      {apiStrategyId === 'yield' ? 'Yield Action' : 'Rebalance Action'}
+                      {apiStrategyId === 'yield'
+                        ? 'Yield Action'
+                        : apiStrategyId === 'arb'
+                          ? 'Arbitrage Action'
+                          : 'Rebalance Action'}
                     </div>
                     {previewSummary && <div className="mt-2 text-sm text-text2 leading-6">{previewSummary}</div>}
                     {previewReason && <div className="mt-2 text-sm text-muted leading-6">{previewReason}</div>}
@@ -436,7 +452,9 @@ export default function StrategyDetailPage() {
 
             <Card>
               <div className="p-5 text-sm text-muted leading-6">
-                This strategy remains confirmation-based. It can monitor the wallet and propose live actions, but it does not submit transactions autonomously in the current MVP.
+                {apiStrategyId === 'arb'
+                  ? 'Arbitrage remains confirmation-based and monitoring-first. The current engine surfaces candidate same-chain dislocations, but it does not guarantee profitability or execute autonomously.'
+                  : 'This strategy remains confirmation-based. It can monitor the wallet and propose live actions, but it does not submit transactions autonomously in the current MVP.'}
               </div>
             </Card>
           </div>
