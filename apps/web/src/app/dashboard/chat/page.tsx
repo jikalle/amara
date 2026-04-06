@@ -74,12 +74,12 @@ function DashboardChatPageInner() {
   return (
     <div className="min-h-screen bg-earth text-cream flex flex-col">
       <header className="sticky top-0 z-20 border-b border-border bg-soil/95 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6 xl:px-8">
-          <div>
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between md:gap-4 md:px-6 xl:px-8">
+          <div className="min-w-0">
             <div className="text-[10px] uppercase tracking-[0.2em] text-green font-bold">Agent Chat</div>
             <div className="text-sm text-muted">Execute swaps, sends, and bridges with confirmation.</div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!!messages.length && (
               <button
                 onClick={clearChat}
@@ -98,7 +98,7 @@ function DashboardChatPageInner() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:gap-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 gap-4 px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:gap-8">
         <section className="min-w-0 flex-1 max-xl:mx-auto max-xl:w-full max-xl:max-w-2xl">
           {!hasWallet && (
             <div className="bg-kola/10 border border-kola/30 px-4 py-3 text-sm text-text2">
@@ -141,8 +141,8 @@ function DashboardChatPageInner() {
             </div>
           )}
 
-          <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-border bg-soil shadow-[0_18px_36px_rgba(0,0,0,0.14)]">
-            <div ref={scrollRef} className="flex flex-col gap-4 overflow-y-auto px-4 py-4 pr-3 xl:min-h-[calc(100vh-17rem)] xl:max-h-[calc(100vh-17rem)] xl:px-5 xl:py-5">
+          <div className="mt-4 overflow-hidden rounded-[1.15rem] border border-border bg-soil shadow-[0_18px_36px_rgba(0,0,0,0.14)] md:rounded-[1.35rem]">
+            <div ref={scrollRef} className="flex flex-col gap-4 overflow-y-auto px-3 py-4 pr-2.5 min-h-[calc(100vh-17.5rem)] max-h-[calc(100vh-17.5rem)] sm:px-4 sm:pr-3 xl:min-h-[calc(100vh-17rem)] xl:max-h-[calc(100vh-17rem)] xl:px-5 xl:py-5">
               {action && (
                 <div className="mr-auto max-w-xl xl:max-w-2xl">
                   <ChatQuickActionPanel
@@ -186,7 +186,7 @@ function DashboardChatPageInner() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-[1.35rem] border border-border bg-soil px-4 py-4 shadow-[0_12px_30px_rgba(0,0,0,0.12)]">
+          <div className="mt-4 rounded-[1.15rem] border border-border bg-soil px-3 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.12)] md:rounded-[1.35rem] md:px-4 md:py-4">
             <div className="flex gap-3 items-end">
               <textarea
                 value={input}
@@ -199,7 +199,7 @@ function DashboardChatPageInner() {
                 }}
                 placeholder={hasWallet ? 'Swap 0.2 ETH to USDC on Base' : 'Link a wallet to use the agent'}
                 disabled={!hasWallet}
-                className="flex-1 min-h-[90px] bg-clay border border-border text-sm px-3 py-3 outline-none focus:border-gold/40 resize-none disabled:opacity-50"
+                className="flex-1 min-h-[88px] bg-clay border border-border text-sm px-3 py-3 outline-none focus:border-gold/40 resize-none disabled:opacity-50"
               />
               <Button onClick={handleSend} disabled={!canSend} loading={isThinking}>
                 Send

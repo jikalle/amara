@@ -221,20 +221,20 @@ export default function StrategyDetailPage() {
   return (
     <div className="min-h-screen bg-earth text-cream">
       <KenteStrip height={4} />
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 xl:px-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
+      <div className="mx-auto w-full max-w-6xl px-4 py-4 md:px-6 md:py-6 xl:px-8">
+        <div className="mb-5 flex flex-col gap-3 md:mb-6 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
             <div className="text-[11px] tracking-[0.2em] uppercase text-muted font-bold">Strategy</div>
-            <h1 className="text-3xl font-display font-black mt-1">{getStrategyTitle(strategyId)}</h1>
+            <h1 className="mt-1 text-[2rem] font-display font-black leading-none md:text-3xl">{getStrategyTitle(strategyId)}</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 md:gap-3">
             <button
               onClick={() => setShowGuardrails((current) => !current)}
               className="border border-border px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-text2 hover:border-border2"
             >
               Settings
             </button>
-            <Link href="/dashboard" className="text-sm text-muted hover:text-cream transition-colors">
+            <Link href="/dashboard" className="inline-flex items-center border border-border bg-clay/55 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-muted hover:border-border2 hover:text-cream transition-colors">
               Back
             </Link>
           </div>
@@ -260,22 +260,22 @@ export default function StrategyDetailPage() {
 
                 {!isLoading && strategy && (
                   <div className="space-y-3 text-sm">
-                    <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                    <div className="flex items-start justify-between gap-4 border-b border-border/50 pb-2">
                       <span className="text-muted">Name</span>
-                      <span className="font-mono text-text2">{strategy.name}</span>
+                      <span className="font-mono text-right text-text2">{strategy.name}</span>
                     </div>
-                    <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                    <div className="flex items-start justify-between gap-4 border-b border-border/50 pb-2">
                       <span className="text-muted">Type</span>
-                      <span className="font-mono text-text2">{strategy.type}</span>
+                      <span className="font-mono text-right text-text2">{strategy.type}</span>
                     </div>
-                    <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                    <div className="flex items-start justify-between gap-4 border-b border-border/50 pb-2">
                       <span className="text-muted">{strategy.type === 'rebalance' || strategy.type === 'yield' || strategy.type === 'arb' ? 'Signal' : 'Performance'}</span>
-                      <span className="font-mono text-text2">{strategy.pnl}</span>
+                      <span className="font-mono text-right text-text2">{strategy.pnl}</span>
                     </div>
                     {Object.entries(strategy.details ?? {}).map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between border-b border-border/50 pb-2">
+                      <div key={key} className="flex items-start justify-between gap-4 border-b border-border/50 pb-2">
                         <span className="text-muted capitalize">{key.replace(/_/g, ' ')}</span>
-                        <span className="font-mono text-text2">{String(value)}</span>
+                        <span className="font-mono text-right text-text2">{String(value)}</span>
                       </div>
                     ))}
                   </div>
@@ -388,7 +388,7 @@ export default function StrategyDetailPage() {
                     Arbitrage is currently a monitored beta flow. Amara estimates quoted edge after fees, but realized profit is not guaranteed and every trade still requires confirmation.
                   </div>
                 )}
-                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3">
                   {(apiStrategyId === 'rebalance' || apiStrategyId === 'yield' || apiStrategyId === 'arb') && (
                     <Button
                       variant="primary"
@@ -471,7 +471,7 @@ export default function StrategyDetailPage() {
               {strategy?.history?.length ? (
                 strategy.history.map((entry) => (
                   <div key={entry.id} className="border border-border/60 bg-clay/45 px-4 py-3">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <div className="text-sm text-text2 leading-6">{entry.description}</div>
                         <div className="mt-2 text-[10px] font-mono text-muted">

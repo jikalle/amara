@@ -83,3 +83,25 @@ body {
 @media (min-width: 1024px) {
   .pb-mobile-nav { padding-bottom: 0; }
 }
+
+@keyframes compactTicker {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.compact-ticker {
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.compact-ticker-track {
+  display: inline-flex;
+  min-width: max-content;
+  animation: compactTicker 20s linear infinite;
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  align-items: center;
+}

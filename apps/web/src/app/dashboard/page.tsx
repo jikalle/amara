@@ -103,22 +103,24 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-earth text-cream flex flex-col">
+    <div className="min-h-screen bg-earth text-cream flex flex-col overflow-x-hidden">
       {/* Kente top strip */}
       <KenteStrip height={4} />
 
       {/* ── Status bar ── */}
       <header className="sticky top-0 z-20 bg-soil/95 backdrop-blur border-b border-border">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6 xl:px-8">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex w-full max-w-7xl items-start justify-between gap-3 px-4 py-3 md:items-center md:gap-4 md:px-6 xl:px-8">
+          <div className="flex min-w-0 items-center gap-3">
             <AnaraLogo size={32} />
-            <div>
-              <div className="font-display font-black text-lg leading-tight">Amara</div>
-              <div className="text-[11px] text-muted tracking-widest uppercase">Assisted · Base + Ethereum</div>
+            <div className="min-w-0">
+              <div className="font-display font-black text-base leading-tight md:text-lg">Amara</div>
+              <div className="truncate text-[10px] text-muted tracking-[0.16em] uppercase md:text-[11px] md:tracking-widest">
+                Assisted wallet · Base + Ethereum + BNB
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-shrink-0 items-center gap-2 md:gap-3">
             <div className="hidden xl:flex items-center gap-3 border border-border bg-clay/65 px-3 py-2">
               <div className="text-right">
                 <div className="text-[11px] font-bold tracking-[0.18em] uppercase text-muted">Workspace</div>
@@ -161,13 +163,18 @@ export default function DashboardPage() {
               <span className="text-[11px] font-bold text-green tracking-widest uppercase">Agent Ready</span>
             </div>
 
+            <div className="flex md:hidden items-center gap-1.5 border border-green/25 bg-green/5 px-2.5 py-1.5">
+              <LiveDot />
+              <span className="text-[10px] font-bold text-green tracking-[0.16em] uppercase">Ready</span>
+            </div>
+
             <div className="relative">
               <button
                 onClick={() => setProfileOpen((current) => !current)}
                 className="flex items-center gap-2 border border-border bg-clay/65 px-2 py-1.5 hover:border-border2 transition-colors"
                 title="Profile"
               >
-                <span className="flex h-8 w-8 items-center justify-center bg-gold text-earth font-black text-sm font-display">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gold text-earth font-black text-sm font-display">
                   {profileLabel}
                 </span>
                 <span className="hidden md:block text-left">
@@ -204,7 +211,7 @@ export default function DashboardPage() {
       </header>
 
       {/* ── Main content ── */}
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 pb-8 pt-5 md:px-6 xl:px-8 xl:pb-12">
+      <main className="flex-1 mx-auto w-full max-w-7xl overflow-x-hidden px-4 pb-8 pt-4 md:px-6 md:pt-5 xl:px-8 xl:pb-12">
         {error && (
           <div className="border border-kola/30 bg-kola/10 px-4 py-3 text-[12px] text-text2">
             <div className="font-bold text-kola mb-1">Wallet data is partially unavailable</div>
@@ -227,12 +234,12 @@ export default function DashboardPage() {
         )}
 
         {!error && lastUpdated && (
-          <div className="mt-3 text-[10px] font-mono text-muted">
+          <div className="mt-2 text-[10px] font-mono text-muted">
             Last synced {formatRelativeSync(lastUpdated)}
           </div>
         )}
 
-        <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(340px,0.9fr)] xl:items-start">
+        <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(340px,0.9fr)] xl:items-start xl:gap-6">
           <section className="space-y-4">
             <PortfolioHero
               walletAddress={address}
@@ -256,11 +263,17 @@ export default function DashboardPage() {
             />
 
             <div className="overflow-hidden border border-border bg-clay/60 shadow-[0_12px_30px_rgba(0,0,0,0.12)]">
-              <div className="flex items-center gap-3 px-4 py-2 overflow-hidden">
+              <div className="flex items-center gap-3 px-3 py-2 overflow-hidden md:px-4">
                 <span className="text-[10px] font-bold text-gold tracking-[0.18em] uppercase flex-shrink-0">Ọrọ àṣà</span>
-                <span className="text-[10px] text-muted italic whitespace-nowrap animate-ticker">
+                <span className="hidden text-[10px] text-muted italic whitespace-nowrap animate-ticker sm:block">
                   "The wealth of a man is not in his pocket, but in the land he cultivates." &nbsp;·&nbsp; "Oní owó ló ní ọrọ." &nbsp;·&nbsp; Brickt — African land. Global capital.
                 </span>
+                <div className="compact-ticker min-w-0 h-5 flex-1 sm:hidden">
+                  <div className="compact-ticker-track text-[10px] italic text-[#E7D4B0]">
+                    <span>Wealth follows the land you cultivate. &nbsp;·&nbsp; Oní owó ló ní ọrọ. &nbsp;·&nbsp; Brickt — African land. Global capital. &nbsp;&nbsp;&nbsp;</span>
+                    <span>Wealth follows the land you cultivate. &nbsp;·&nbsp; Oní owó ló ní ọrọ. &nbsp;·&nbsp; Brickt — African land. Global capital.</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -285,7 +298,7 @@ export default function DashboardPage() {
           <aside className="space-y-4 xl:sticky xl:top-24">
             <section>
               <div className="text-[11px] font-bold tracking-[0.2em] text-muted uppercase mb-3">Strategies</div>
-              <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide md:mx-0 md:px-0 lg:grid lg:grid-cols-2 lg:overflow-visible lg:gap-3 lg:pb-0">
+              <div className="grid grid-cols-2 gap-2.5 md:flex md:gap-2.5 md:overflow-x-auto md:pb-1 md:-mx-4 md:px-4 md:scrollbar-hide lg:mx-0 lg:grid lg:grid-cols-2 lg:overflow-visible lg:gap-3 lg:px-0 lg:pb-0">
                 {STRATEGY_CARDS.map(s => (
                   <StrategyCard key={s.id} {...s} />
                 ))}
@@ -1531,29 +1544,32 @@ function PortfolioHero({
     .slice(0, 2)
   return (
     <Card kente className="shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
-      <div className="p-4">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <div className="text-[11px] font-bold tracking-[0.2em] text-muted uppercase">Total Portfolio Value</div>
+      <div className="p-3 sm:p-4">
+        <div className="mb-1.5 flex items-center justify-between gap-3 sm:mb-2">
+          <div className="text-[10px] font-bold tracking-[0.18em] text-muted uppercase sm:text-[11px] sm:tracking-[0.2em]">Total Portfolio Value</div>
           <button
             onClick={() => { void onRefresh() }}
             disabled={isRefreshing}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-clay text-text2 transition-colors hover:border-border2 disabled:opacity-60"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-clay text-text2 transition-colors hover:border-border2 disabled:opacity-60 sm:h-8 sm:w-8"
             title="Refresh balances"
             aria-label="Refresh balances"
           >
             <span className={isRefreshing ? 'animate-spin' : ''}>↻</span>
           </button>
         </div>
-        <div className="font-display font-black text-[2.8rem] leading-none md:text-[3.15rem] xl:text-[3.5rem]">
+        <div className="font-display font-black text-[1.9rem] leading-none sm:text-[2.8rem] md:text-[3.15rem] xl:text-[3.5rem]">
           <span className="text-gold2">$</span>
           {totalUsd.replace('$','').split('.')[0]}
-          <span className="text-2xl text-muted font-bold">.{totalUsd.split('.')[1] ?? '00'}</span>
+          <span className="text-base text-muted font-bold sm:text-2xl">.{totalUsd.split('.')[1] ?? '00'}</span>
         </div>
-        <div className="flex items-center gap-2 mt-2.5">
-            <span className="bg-clay border border-border text-text2 text-[10px] font-bold font-mono px-2.5 py-1">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:mt-2.5 sm:gap-2">
+            <span className="bg-clay border border-border px-2 py-1 text-[9px] font-bold font-mono text-text2 sm:px-2.5 sm:text-[10px]">
             {activeChainCount} active {activeChainCount === 1 ? 'chain' : 'chains'}
           </span>
-          <span className="text-[10px] text-muted">{tokenCount} tokens · {nftCount} NFTs</span>
+          <span className="text-[9px] text-muted sm:text-[10px]">{tokenCount} tokens · {nftCount} NFTs</span>
+          <span className="bg-clay border border-border px-2 py-1 text-[9px] font-bold font-mono text-text2 sm:hidden">
+            {summaryChains[0]?.totalUsd ?? '$0.00'} top chain
+          </span>
         </div>
       </div>
 
@@ -1568,18 +1584,18 @@ function PortfolioHero({
           })),
           { label: 'Assets',    value: String(tokenCount + nftCount),   color: colors.gold2       },
         ].slice(0, 3).map((s, i) => (
-          <div key={s.label} className={`flex-1 p-3 ${i < 2 ? 'border-r border-border' : ''}`}>
-            <div className="flex items-center gap-2">
-              {'chainId' in s && s.chainId ? <ChainLogo chainId={s.chainId} size={16} /> : null}
-              <div className="font-display font-bold text-lg" style={{ color: s.color }}>{s.value}</div>
+          <div key={s.label} className={`flex-1 p-2 sm:p-3 ${i < 2 ? 'border-r border-border' : ''}`}>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {'chainId' in s && s.chainId ? <ChainLogo chainId={s.chainId} size={14} /> : null}
+              <div className="font-display text-[0.95rem] font-bold sm:text-lg" style={{ color: s.color }}>{s.value}</div>
             </div>
-            <div className="text-[11px] text-muted uppercase tracking-wide mt-0.5">{s.label}</div>
+            <div className="mt-0.5 text-[9px] text-muted uppercase tracking-wide sm:text-[11px]">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Action buttons */}
-      <div className="grid grid-cols-2 gap-2 p-3 border-t border-border sm:grid-cols-5">
+      <div className="grid grid-cols-5 gap-1 p-2 border-t border-border sm:gap-2 sm:p-3">
         {[
           { label: 'Fund',    icon: '₦', sheet: 'fund'    as const, color: colors.green  },
           { label: 'Send',    icon: '↑', sheet: 'send'    as const, color: colors.kola   },
@@ -1600,11 +1616,11 @@ function PortfolioHero({
               window.setTimeout(() => setPendingAction(null), 300)
             }}
             disabled={a.sheet === 'fund' ? !walletAddress || !identityToken : false}
-            className="flex-1 flex flex-col items-center gap-1 py-2.5 bg-clay2 border border-border hover:border-border2 transition-colors disabled:opacity-60"
+            className="flex min-h-[48px] flex-col items-center justify-center gap-0.5 border border-border bg-clay2 px-1 py-1.5 text-center hover:border-border2 transition-colors disabled:opacity-60 sm:min-h-[60px] sm:gap-1 sm:px-2 sm:py-2.5"
             style={{ borderTopWidth: 2, borderTopColor: a.color }}
           >
-            <span className="text-base">{a.icon}</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text2">
+            <span className="text-[12px] sm:text-base">{a.icon}</span>
+            <span className="text-[8px] font-bold uppercase tracking-[0.08em] text-text2 sm:text-[10px] sm:tracking-wider">
               {pendingAction === a.sheet ? 'Opening…' : a.label}
             </span>
           </button>
@@ -2138,7 +2154,7 @@ function StrategyCard({ id, icon, name, pnl, sub, accent, status }: typeof STRAT
         })
       }}
       disabled={isNavigating}
-      className="flex-shrink-0 w-32 bg-soil border border-border text-left hover:border-border2 transition-all hover:-translate-y-0.5 relative overflow-hidden disabled:opacity-60 lg:w-auto lg:min-h-[152px]"
+      className="relative w-full overflow-hidden border border-border bg-soil text-left transition-all hover:-translate-y-0.5 hover:border-border2 disabled:opacity-60 md:flex-shrink-0 md:w-32 lg:w-auto lg:min-h-[152px]"
     >
       <div style={{ height: 2, background: accent }} />
       <div className="p-3">
@@ -2346,14 +2362,14 @@ function WalletPanel({
 
   return (
     <section>
-      <div className="text-[11px] font-bold tracking-[0.2em] text-muted uppercase mb-3">Wallet</div>
+      <div className="mb-3 text-[11px] font-bold tracking-[0.2em] text-muted uppercase">Wallet</div>
       <Card kente>
         <div className="sticky top-0 z-10 flex bg-clay border-b border-border">
           {(['assets', 'activity', 'nfts'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => onTabChange(tab)}
-              className={`flex-1 py-2.5 text-[11px] font-bold tracking-wider uppercase border-b-2 transition-colors ${
+              className={`min-w-0 flex-1 py-2 text-[10px] font-bold tracking-[0.16em] uppercase border-b-2 transition-colors sm:py-2.5 sm:text-[11px] sm:tracking-wider ${
                 activeTab === tab
                   ? 'text-gold2 border-gold2'
                   : 'text-muted border-transparent hover:text-text2'
@@ -2364,10 +2380,10 @@ function WalletPanel({
           ))}
         </div>
 
-        <div className="sticky top-[41px] z-[9] flex flex-wrap gap-2 border-b border-border bg-soil/95 px-3 py-2 backdrop-blur">
+        <div className="sticky top-[37px] z-[9] flex flex-wrap gap-1.5 border-b border-border bg-soil/95 px-2.5 py-2 backdrop-blur sm:top-[41px] sm:flex-nowrap sm:gap-2 sm:overflow-x-auto sm:px-3">
           <button
             onClick={() => setSelectedChain('all')}
-            className={`border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] transition-colors ${
+            className={`whitespace-nowrap border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5 sm:text-[10px] sm:tracking-[0.16em] ${
               selectedChain === 'all'
                 ? 'border-gold/40 bg-gold/10 text-gold2'
                 : 'border-border bg-clay text-text2 hover:border-border2'
@@ -2379,7 +2395,7 @@ function WalletPanel({
             <button
               key={chainId}
               onClick={() => setSelectedChain(chainId)}
-              className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] transition-colors ${
+              className={`inline-flex items-center gap-1.5 whitespace-nowrap border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5 sm:text-[10px] sm:tracking-[0.16em] ${
                 selectedChain === chainId
                   ? 'border-gold/40 bg-gold/10 text-gold2'
                   : 'border-border bg-clay text-text2 hover:border-border2'
@@ -2391,7 +2407,7 @@ function WalletPanel({
           ))}
         </div>
 
-        <div className="min-h-[200px] max-h-[26rem] overflow-y-auto overscroll-contain md:max-h-[34rem] xl:max-h-[44rem]">
+        <div className="min-h-[220px] max-h-[24rem] overflow-y-auto overscroll-contain md:max-h-[34rem] xl:max-h-[44rem]">
           {activeTab === 'activity' && <ActivityTab transactions={filteredTransactions} isLoading={isLoading} error={error} />}
           {activeTab === 'assets'   && <AssetsTab tokens={filteredTokens} selectedChain={selectedChain} availableChainIds={availableChainIds} />}
           {activeTab === 'nfts'     && <NFTsTab nfts={filteredNfts} isLoading={isLoading} error={error} />}
