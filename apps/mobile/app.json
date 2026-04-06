@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Anara",
-    "slug": "anara-wallet",
+    "name": "Amara",
+    "slug": "amara-wallet",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,8 +15,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "io.anara.wallet",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Anara uses Face ID to secure your wallet.",
-        "NSMicrophoneUsageDescription": "Anara uses the microphone for voice commands."
+        "NSFaceIDUsageDescription": "Amara uses Face ID to secure your wallet.",
+        "NSMicrophoneUsageDescription": "Amara uses the microphone for voice commands."
       }
     },
     "android": {
@@ -37,7 +37,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Secure your Anara wallet with Face ID"
+          "faceIDPermission": "Secure your Amara wallet with Face ID"
         }
       ],
       [
@@ -50,6 +50,6 @@
       "expo-font",
       "expo-web-browser"
     ],
-    "scheme": "anara"
+    "scheme": "amara"
   }
 }

@@ -66,7 +66,8 @@ export default function RootLayout() {
               }}
             >
               <Stack.Screen name="index"   options={{ animation: 'fade' }} />
-              <Stack.Screen name="(wallet)" options={{ headerShown: false }} />
+              <Stack.Screen name="chat" options={{ headerShown: false }} />
+              <Stack.Screen name="strategy/[id]" options={{ headerShown: false }} />
               <Stack.Screen name="onboard" options={{ animation: 'slide_from_bottom' }} />
             </Stack>
           </QueryClientProvider>

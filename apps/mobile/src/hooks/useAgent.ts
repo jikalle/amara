@@ -138,6 +138,34 @@ export function useAgent() {
     }
   }, [address, chainId, refreshWallet, updateMessage])
 
+  const executeStandaloneAction = useCallback(async (card: AgentActionCard, onCardChange?: (next: AgentActionCard) => void) => {
+    const nextExecuting = { ...card, status: 'executing' as const }
+    onCardChange?.(nextExecuting)
+
+    try {
+      const res = await fetch(`${API_URL}/api/tx/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: address ?? '0x0000000000000000000000000000000000000000',
+          chainId: chainId ?? 8453,
+          actionCard: card,
+        }),
+      })
+
+      if (!res.ok) throw new Error(`Execution failed: ${res.status}`)
+
+      const data = await res.json()
+      const nextCard = data.actionCard ?? { ...card, status: 'confirmed' as const }
+      onCardChange?.(nextCard)
+      await refreshWallet()
+      return data
+    } catch (err) {
+      onCardChange?.({ ...card, status: 'failed' })
+      throw err
+    }
+  }, [address, chainId, refreshWallet])
+
   const cancelAction = useCallback((messageId: string) => {
     updateMessage(messageId, (msg) => ({
       ...msg,
@@ -145,7 +173,7 @@ export function useAgent() {
     }))
   }, [updateMessage])
 
-  return { messages, isThinking, sendMessage, fetchBrief, fetchStatus, refreshWallet, executeAction, cancelAction }
+  return { messages, isThinking, sendMessage, fetchBrief, fetchStatus, refreshWallet, executeAction, executeStandaloneAction, cancelAction }
 }
 
 function normalizeTokens(tokens: Array<Record<string, unknown>>): TokenBalance[] {

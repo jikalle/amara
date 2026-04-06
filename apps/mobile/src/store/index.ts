@@ -1,29 +1,50 @@
 import { create } from 'zustand'
-import type { AgentMessage, AgentState, TokenBalance, Transaction } from '@anara/types'
+import type { AgentMessage, AgentState, TokenBalance, Transaction, WalletChainSummary, WalletNftSummary } from '@anara/types'
 
 // ── Wallet Store ──
 interface WalletStore {
   address:      string | null
+  hasWallet:    boolean
   chainId:      number
   totalUsd:     string
   tokens:       TokenBalance[]
+  nfts:         WalletNftSummary[]
+  chains:       WalletChainSummary[]
   transactions: Transaction[]
+  isLoading:    boolean
+  error:        string | null
   setAddress:   (a: string | null) => void
+  setHasWallet: (value: boolean) => void
   setChainId:   (id: number) => void
-  setPortfolio: (d: { totalUsd: string; tokens: TokenBalance[] }) => void
+  setPortfolio: (d: { totalUsd: string; tokens: TokenBalance[]; nfts?: WalletNftSummary[]; chains?: WalletChainSummary[] }) => void
   setTransactions: (transactions: Transaction[]) => void
+  setLoading:   (value: boolean) => void
+  setError:     (value: string | null) => void
 }
 
 export const useWalletStore = create<WalletStore>()((set) => ({
   address:      null,
+  hasWallet:    false,
   chainId:      8453,
   totalUsd:     '$0.00',
   tokens:       [],
+  nfts:         [],
+  chains:       [],
   transactions: [],
+  isLoading:    false,
+  error:        null,
   setAddress:   (address)  => set({ address }),
+  setHasWallet: (hasWallet) => set({ hasWallet }),
   setChainId:   (chainId)  => set({ chainId }),
-  setPortfolio: (data)     => set(data),
+  setPortfolio: (data)     => set({
+    totalUsd: data.totalUsd,
+    tokens: data.tokens,
+    nfts: data.nfts ?? [],
+    chains: data.chains ?? [],
+  }),
   setTransactions: (transactions) => set({ transactions }),
+  setLoading: (isLoading) => set({ isLoading }),
+  setError: (error) => set({ error }),
 }))
 
 // ── Agent Store ──
