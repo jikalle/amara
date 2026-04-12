@@ -33,19 +33,6 @@
     },
     "plugins": [
       "expo-secure-store",
-      [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "Secure your Amara wallet with Face ID"
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#D4920A"
-        }
-      ],
       "expo-font",
       "expo-web-browser"
     ],
