@@ -21,6 +21,9 @@ if (typeof globalThis.Event !== 'function') {
   }
 
   globalThis.Event = EventPolyfill
+  if (typeof global !== 'undefined') {
+    global.Event = EventPolyfill
+  }
 }
 
 if (typeof globalThis.CustomEvent !== 'function') {
@@ -32,6 +35,63 @@ if (typeof globalThis.CustomEvent !== 'function') {
   }
 
   globalThis.CustomEvent = CustomEventPolyfill
+  if (typeof global !== 'undefined') {
+    global.CustomEvent = CustomEventPolyfill
+  }
+}
+
+if (typeof globalThis.EventTarget !== 'function') {
+  class EventTargetPolyfill {
+    constructor() {
+      this._listeners = new Map()
+    }
+
+    addEventListener(type, listener) {
+      if (!listener) return
+      const listeners = this._listeners.get(type) ?? new Set()
+      listeners.add(listener)
+      this._listeners.set(type, listeners)
+    }
+
+    removeEventListener(type, listener) {
+      const listeners = this._listeners.get(type)
+      if (!listeners) return
+      listeners.delete(listener)
+      if (!listeners.size) {
+        this._listeners.delete(type)
+      }
+    }
+
+    dispatchEvent(event) {
+      const listeners = this._listeners.get(event?.type)
+      if (!listeners) return true
+      listeners.forEach((listener) => {
+        if (typeof listener === 'function') {
+          listener.call(this, event)
+        } else if (typeof listener?.handleEvent === 'function') {
+          listener.handleEvent(event)
+        }
+      })
+      return !event?.defaultPrevented
+    }
+  }
+
+  globalThis.EventTarget = EventTargetPolyfill
+  if (typeof global !== 'undefined') {
+    global.EventTarget = EventTargetPolyfill
+  }
+}
+
+if (typeof globalThis.window === 'object') {
+  globalThis.window.Event = globalThis.Event
+  globalThis.window.CustomEvent = globalThis.CustomEvent
+  globalThis.window.EventTarget = globalThis.EventTarget
+}
+
+if (typeof globalThis.self === 'object') {
+  globalThis.self.Event = globalThis.Event
+  globalThis.self.CustomEvent = globalThis.CustomEvent
+  globalThis.self.EventTarget = globalThis.EventTarget
 }
 
 // Import required polyfills first
