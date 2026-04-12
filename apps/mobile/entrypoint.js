@@ -94,12 +94,12 @@ if (typeof globalThis.self === 'object') {
   globalThis.self.EventTarget = globalThis.EventTarget
 }
 
-// Import required polyfills first
-import 'fast-text-encoding'
-import 'react-native-get-random-values'
-import '@ethersproject/shims'
+// Load required polyfills only after the globals above are installed.
+require('fast-text-encoding')
+require('react-native-get-random-values')
+require('@ethersproject/shims')
 
-import { registerRootComponent } from 'expo'
-import App from './App'
+const { registerRootComponent } = require('expo')
+const App = require('./App').default
 
 registerRootComponent(App)
